@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueprint — Smart Building Sketch v0.3.8</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Archivo:wght@500;600;700&display=swap');
+
+  :root{
+    --paper:#F7F5EE;
+    --ink:#1B2A4A;
+    --accent:#2B6CB0;
+    --interior:#2E7D6B;
+    --handle:#D93025;
+    --invalid:#9AA0A6;
+    --chrome:#E8E5DC;
+    --chrome-dark:#CFCBBF;
+    --chrome-light:#FBFAF5;
+    --grid-minor:#DDE4EC;
+    --grid-major:#C5D0DE;
+    font-size:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; overflow:hidden; background:#B9B4A6;}
+  body{
+    font-family:'Archivo',system-ui,sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    padding:14px;
+  }
+  #app{
+    width:100%; height:100%;
+    max-width:1400px;
+    display:flex; flex-direction:column;
+    background:var(--chrome);
+    border:1px solid #8f8a7c;
+    border-radius:6px;
+    box-shadow:0 12px 40px rgba(27,42,74,.35), inset 0 1px 0 var(--chrome-light);
+    overflow:hidden;
+  }
+  /* ---------- title bar ---------- */
+  #titlebar{
+    display:flex; align-items:center; gap:10px;
+    padding:7px 12px;
+    background:linear-gradient(#F2EFE6,#E2DED2);
+    border-bottom:1px solid var(--chrome-dark);
+    user-select:none;
+  }
+  #titlebar .logo{
+    width:18px; height:18px; border-radius:4px;
+    background:var(--ink);
+    display:grid; place-items:center;
+    color:var(--paper); font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;
+  }
+  #titlebar .name{font-weight:600; color:var(--ink); font-size:.95rem;}
+  #titlebar .file{font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:#6f6a5c;}
+  #titlebar .ver{
+    margin-left:auto; font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem; color:#8a8574; letter-spacing:.05em;
+  }
+  /* ---------- toolbar ---------- */
+  #toolbar{
+    display:flex; align-items:center; gap:4px; flex-wrap:wrap;
+    padding:6px 8px;
+    background:var(--chrome);
+    border-bottom:1px solid var(--chrome-dark);
+    user-select:none;
+  }
+  .tb-sep{width:1px; align-self:stretch; margin:2px 5px; background:var(--chrome-dark); box-shadow:1px 0 0 var(--chrome-light);}
+  button.tb{
+    appearance:none; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+    padding:6px 10px;
+    font-family:'Archivo',sans-serif; font-size:.82rem; font-weight:600;
+    color:var(--ink);
+    background:linear-gradient(var(--chrome-light),var(--chrome));
+    border:1px solid var(--chrome-dark);
+    border-radius:4px;
+    box-shadow:inset 0 1px 0 #fff, 0 1px 0 rgba(0,0,0,.06);
+  }
+  button.tb:hover{background:linear-gradient(#fff,var(--chrome-light));}
+  button.tb:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.15); background:var(--chrome);}
+  button.tb.active{
+    background:var(--ink); color:var(--paper);
+    border-color:var(--ink);
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.35);
+  }
+  button.tb.active.int{background:var(--interior); border-color:var(--interior);}
+  button.tb:disabled{opacity:.4; cursor:default;}
+  button.tb .key{
+    font-family:'IBM Plex Mono',monospace; font-size:.65rem; font-weight:500;
+    padding:1px 4px; border-radius:3px;
+    background:rgba(27,42,74,.08); color:inherit; opacity:.75;
+  }
+  button.tb.active .key{background:rgba(247,245,238,.18);}
+  button.tb svg{width:15px; height:15px; flex:none;}
+  .paint-select{
+    appearance:none; cursor:pointer;
+    max-width:150px;
+    padding:6px 24px 6px 9px;
+    font-family:'Archivo',sans-serif; font-size:.78rem; font-weight:600;
+    color:var(--ink);
+    background:linear-gradient(var(--chrome-light),var(--chrome));
+    border:1px solid var(--chrome-dark); border-radius:4px;
+    box-shadow:inset 0 1px 0 #fff, 0 1px 0 rgba(0,0,0,.06);
+  }
+  #paintPanel{display:flex; align-items:center; gap:4px;}
+  #stairTypes,#doorTypes,#windowTypes{display:none; align-items:center; gap:4px;}
+  #stairTypes.show,#doorTypes.show,#windowTypes.show{display:flex;}
+  /* ---------- canvas ---------- */
+  #canvaswrap{position:relative; flex:1; min-height:0; background:var(--paper);}
+  canvas{position:absolute; inset:0; width:100%; height:100%; display:block; cursor:crosshair;}
+  canvas.tool-select{cursor:default;}
+  canvas.tool-erase{cursor:cell;}
+  canvas.panning{cursor:grabbing;}
+  /* ---------- floor selector ---------- */
+  #floorPanel{
+    position:absolute; right:14px; bottom:14px;
+    display:flex; flex-direction:column; gap:4px;
+    background:var(--chrome);
+    border:1px solid var(--chrome-dark);
+    border-radius:6px;
+    padding:6px;
+    box-shadow:0 4px 14px rgba(27,42,74,.22), inset 0 1px 0 var(--chrome-light);
+    user-select:none;
+  }
+  #floorPanel .fp-title{
+    font-family:'IBM Plex Mono',monospace; font-size:.62rem; letter-spacing:.08em;
+    color:#8a8574; text-align:center; padding-bottom:2px;
+  }
+  #floorPanel button{
+    appearance:none; cursor:pointer;
+    min-width:64px;
+    padding:6px 10px;
+    font-family:'IBM Plex Mono',monospace; font-size:.78rem; font-weight:600;
+    color:var(--ink);
+    background:linear-gradient(var(--chrome-light),var(--chrome));
+    border:1px solid var(--chrome-dark); border-radius:4px;
+  }
+  #floorPanel button:hover{background:linear-gradient(#fff,var(--chrome-light));}
+  #floorPanel button.cur{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  #floorPanel button.add{color:#6f6a5c; font-weight:500;}
+  /* ---------- status bar ---------- */
+  #statusbar{
+    display:flex; align-items:center; gap:14px;
+    padding:5px 12px;
+    background:linear-gradient(var(--chrome),#DAD6C9);
+    border-top:1px solid var(--chrome-dark);
+    font-family:'IBM Plex Mono',monospace; font-size:.74rem; color:#4a4a3f;
+    user-select:none; white-space:nowrap; overflow:hidden;
+  }
+  #tip{flex:1; overflow:hidden; text-overflow:ellipsis;}
+  #tip b{color:var(--ink);}
+  #tip.warn{color:var(--handle); font-weight:600;}
+  #coords,#zoom,#floorInd{color:#77725f;}
+  @media (max-width:860px){
+    button.tb .lbl{display:none;}
+    #coords{display:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="titlebar">
+    <div class="logo">▦</div>
+    <span class="name">Blueprint</span>
+    <span class="file">untitled.plan</span>
+    <span class="ver">SMART BUILDING · PROTOTYPE 0.3.10</span>
+  </div>
+
+  <div id="toolbar">
+    <button class="tb tool" data-tool="select" title="Select / move walls (V)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M4 2l8 7-3.5.5L10 13l-2 1-1.5-3.5L4 12V2z" fill="currentColor"/></svg>
+      <span class="lbl">Select</span><span class="key">V</span>
+    </button>
+    <button class="tb tool" data-tool="wall" title="Draw exterior walls (W)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 13h11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><rect x="1" y="11.5" width="3" height="3" fill="currentColor"/><rect x="11" y="11.5" width="3" height="3" fill="currentColor"/></svg>
+      <span class="lbl">Wall</span><span class="key">W</span>
+    </button>
+    <button class="tb tool int" data-tool="interior" title="Draw half walls — thin, waist-high in 3D (I)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 13h11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="4 2"/><rect x="1" y="12" width="2.4" height="2.4" fill="currentColor"/><rect x="11.6" y="12" width="2.4" height="2.4" fill="currentColor"/></svg>
+      <span class="lbl">Half wall</span><span class="key">I</span>
+    </button>
+    <button class="tb tool" data-tool="door" title="Place doors (D)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 14h12M4 14V3h5v11" stroke="currentColor" stroke-width="1.6"/><path d="M9 3a8 8 0 015 7" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/></svg>
+      <span class="lbl">Door</span><span class="key">D</span>
+    </button>
+    <button class="tb tool" data-tool="stairs" title="Place stairs (S)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 14h3v-3h3V8h3V5h3V2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="lbl">Stairs</span><span class="key">S</span>
+    </button>
+    <button class="tb tool" data-tool="cutout" title="Cut a floor opening for stairs / lofts (C)">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="1.3"/></svg>
+      <span class="lbl">Cutout</span><span class="key">C</span>
+    </button>
+    <button class="tb tool" data-tool="pillar" title="Place rectangular support pillars (P)">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="4" y="3" width="8" height="10" stroke="currentColor" stroke-width="1.7"/><path d="M2.5 3h11M2.5 13h11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <span class="lbl">Pillar</span><span class="key">P</span>
+    </button>
+    <button class="tb tool" data-tool="erase" title="Erase (E)">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="7" width="7" height="6" rx="1" transform="rotate(-25 5 10)" stroke="currentColor" stroke-width="1.6"/><path d="M8 14h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span class="lbl">Erase</span><span class="key">E</span>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <div id="stairTypes">
+      <button class="tb st" data-st="straight" title="Straight, skinny (1.0 × 3.0 m)"><span class="lbl">Straight</span></button>
+      <button class="tb st" data-st="wide" title="Straight, wide (1.6 × 3.0 m)"><span class="lbl">Wide</span></button>
+      <button class="tb st" data-st="uturn" title="180° switchback with landing (2.0 × 2.6 m)"><span class="lbl">U-turn</span></button>
+      <div class="tb-sep"></div>
+    </div>
+
+    <div id="doorTypes">
+      <button class="tb dt" data-door="single" title="Single door (0.9 m)"><span class="lbl">Single</span></button>
+      <button class="tb dt" data-door="double" title="Double doors (1.8 m)"><span class="lbl">Double</span></button>
+      <div class="tb-sep"></div>
+    </div>
+
+    <button class="tb" id="btnWindows" title="Toggle windows on the selected wall (N)" disabled>
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v10M2 8h12" stroke="currentColor" stroke-width="1.2"/></svg>
+      <span class="lbl">Windows</span><span class="key">N</span>
+    </button>
+    <div id="windowTypes">
+      <button class="tb wt" data-win="standard" title="Standard window"><span class="lbl">Std</span></button>
+      <button class="tb wt" data-win="tall" title="Taller window"><span class="lbl">Tall</span></button>
+      <button class="tb wt" data-win="wide" title="Double-wide window"><span class="lbl">Wide</span></button>
+      <button class="tb wt" data-win="tallWide" title="Tall double-wide window"><span class="lbl">Tall wide</span></button>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <button class="tb" id="btnSnap" title="Snap to grid (G)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 1v14M8 1v14M13 1v14M1 3h14M1 8h14M1 13h14" stroke="currentColor" stroke-width="1"/></svg>
+      <span class="lbl">Snap</span><span class="key">G</span>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <button class="tb" id="btnUndo" title="Undo (Ctrl+Z)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M6 3L2 7l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 7h8a4 4 0 010 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="lbl">Undo</span>
+    </button>
+    <button class="tb" id="btnRedo" title="Redo (Ctrl+Y)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M10 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 7H6a4 4 0 000 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="lbl">Redo</span>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <button class="tb" id="btnJson" title="Download the plan as JSON (for the future 3D translator)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8m0 0l-3-3m3 3l3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v2h12v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="lbl">Export JSON</span>
+    </button>
+    <button class="tb" id="btnObj" title="Export the whole building as a Wavefront .obj (open in Blender)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 1.5l5.5 3v7l-5.5 3-5.5-3v-7l5.5-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2.5 4.5L8 7.5l5.5-3M8 7.5V14" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      <span class="lbl">Export OBJ</span>
+    </button>
+    <button class="tb" id="btnPbr" title="Download the Blender script that extracts full PBR ZIPs and wires material nodes automatically">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3z" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 8h6M5 10h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span class="lbl">PBR ZIPs</span>
+    </button>
+    <button class="tb" id="btnPng" title="Save a PNG snapshot of the blueprint">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.4" fill="currentColor"/><path d="M2 11l3.5-3 3 2.5L12 7l2 2" stroke="currentColor" stroke-width="1.4"/></svg>
+      <span class="lbl">PNG</span>
+    </button>
+
+    <div class="tb-sep"></div>
+
+    <div id="paintPanel" title="Prototype material slots for OBJ/MTL export">
+      <select id="paintTarget" class="paint-select" aria-label="Paint target"></select>
+      <select id="paintMaterial" class="paint-select" aria-label="Material"></select>
+      <button class="tb" id="btnApplyPaint" title="Apply this material globally, or to the selected wall/room when possible"><span class="lbl">Paint</span></button>
+    </div>
+
+    <div class="tb-sep"></div>
+
+    <button class="tb" id="btnClear" title="Clear this floor">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 4h10M6 4V2.5h4V4M4.5 4l.8 9h5.4l.8-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="lbl">Clear floor</span>
+    </button>
+  </div>
+
+  <div id="canvaswrap">
+    <canvas id="cv"></canvas>
+    <div id="floorPanel">
+      <div class="fp-title">FLOORS</div>
+      <div id="floorBtns"></div>
+      <button class="add" id="btnAddFloor">+ floor</button>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span id="tip"></span>
+    <span id="floorInd">F1</span>
+    <span id="coords">0.0, 0.0 m</span>
+    <span id="zoom">100%</span>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =========================================================
+   Blueprint — smart building sketch prototype v0.3
+   World units are meters. Grid cell = 0.5 m.
+   All walls are orthogonal (horizontal or vertical).
+   v0.3: rooms own their walls (walls carry a roomId, rooms
+   are fully separated — shared boundaries are two coincident
+   walls), room-aware erase, and Wavefront .obj export.
+========================================================= */
+const GRID = 0.5;
+const MAJOR = 2.5;
+const WALL_T = 0.14;        // exterior wall visual thickness (m)
+const INT_T = 0.09;         // interior wall visual thickness (m)
+const WIN_LEN = 1.5;
+const WIN_GAP = 1.2;
+const WIN_MARGIN = 0.9;
+const DOOR_W = 0.9;
+const DOUBLE_DOOR_W = 1.8;
+const PILLAR_W = 0.28;
+const PILLAR_D = 0.28;
+const DOOR_TYPES = {
+  single: {w: DOOR_W, label: 'SINGLE'},
+  double: {w: DOUBLE_DOOR_W, label: 'DOUBLE'},
+};
+const WINDOW_TYPES = {
+  standard: {length: WIN_LEN, sill: 0.9, height: 1.4, label: 'STD'},
+  tall:     {length: WIN_LEN, sill: 0.45, height: 2.1, label: 'TALL'},
+  wide:     {length: 3.0, sill: 0.9, height: 1.4, label: 'WIDE'},
+  tallWide: {length: 3.0, sill: 0.45, height: 2.1, label: 'TALL WIDE'},
+};
+
+const MATERIALS = {
+  Exterior_Brick:              {label:'Exterior brick',        cat:['exteriorWall'], kd:[0.50,0.20,0.14], rough:0.88},
+  Exterior_Stylized_Concrete:  {label:'Stylized concrete',     cat:['exteriorWall','interiorWall','roof','trim'], kd:[0.48,0.48,0.43], rough:0.92},
+  Interior_Drywall_Warm:       {label:'Drywall warm',          cat:['interiorWall','ceiling'], kd:[0.76,0.73,0.66], rough:0.80},
+  Interior_Drywall_White:      {label:'Drywall white',         cat:['interiorWall','ceiling'], kd:[0.86,0.84,0.78], rough:0.78},
+  Interior_Drywall_BlueGray:   {label:'Drywall blue-gray',     cat:['interiorWall','ceiling'], kd:[0.48,0.54,0.57], rough:0.82},
+  Interior_Brick:              {label:'Interior brick',        cat:['interiorWall'], kd:[0.45,0.18,0.12], rough:0.90},
+  Interior_Plain_Concrete:     {label:'Plain concrete',        cat:['interiorWall','floor','ceiling','roof','pillar','stair','trim'], kd:[0.42,0.42,0.39], rough:0.95},
+  Interior_Wallpaper_Muted:    {label:'Muted wallpaper',       cat:['interiorWall'], kd:[0.52,0.47,0.41], rough:0.76},
+  Interior_Marble:             {label:'Wall marble',           cat:['interiorWall'], kd:[0.72,0.70,0.66], rough:0.35},
+  Ceiling_Tiles:               {label:'Ceiling tiles',         cat:['ceiling','interiorWall'], kd:[0.70,0.69,0.64], rough:0.86},
+  Floor_Wood_Dark:             {label:'Dark wood floor',       cat:['floor'], kd:[0.30,0.19,0.11], rough:0.55},
+  Floor_Carpet_Charcoal:       {label:'Carpet charcoal',       cat:['floor'], kd:[0.15,0.16,0.16], rough:0.98},
+  Floor_Carpet_Brown:          {label:'Carpet dark brown',     cat:['floor'], kd:[0.23,0.17,0.13], rough:0.98},
+  Floor_Carpet_BlueGray:       {label:'Carpet blue-gray',      cat:['floor'], kd:[0.20,0.25,0.29], rough:0.98},
+  Floor_Tile_Slate:            {label:'Slate tile',            cat:['floor'], kd:[0.25,0.27,0.28], rough:0.60},
+  Floor_Marble_Gray:           {label:'Gray marble floor',     cat:['floor'], kd:[0.62,0.61,0.58], rough:0.38},
+  Floor_Concrete:              {label:'Concrete floor',        cat:['floor'], kd:[0.44,0.44,0.41], rough:0.92},
+  Roof_Concrete:               {label:'Concrete roof',         cat:['roof'], kd:[0.36,0.37,0.35], rough:0.96},
+  Trim_Foundation_Concrete:    {label:'Concrete foundation',   cat:['trim'], kd:[0.34,0.34,0.31], rough:0.94},
+  Trim_Wood_Paneling:          {label:'Wood paneling',         cat:['trim'], kd:[0.28,0.16,0.09], rough:0.65},
+  Pillar_Concrete:             {label:'Concrete pillar',       cat:['pillar'], kd:[0.43,0.43,0.40], rough:0.94},
+  Stair_Concrete:              {label:'Concrete stairs',       cat:['stair'], kd:[0.39,0.39,0.36], rough:0.92},
+  Door_Wood:                   {label:'Wood doors',            cat:['door'], kd:[0.32,0.18,0.08], rough:0.55},
+  Window_Glass:                {label:'Glass placeholder',     cat:['glass'], kd:[0.55,0.72,0.80], rough:0.10, alpha:0.35},
+  Cut_Edge_Concrete:           {label:'Cut edge concrete',     cat:['edge'], kd:[0.40,0.40,0.37], rough:0.94},
+};
+
+const TEXTURE_SOURCES = {
+  Exterior_Brick:             {asset:'Bricks038',         source:'ambientCG', file:'Exterior_Brick_BaseColor.jpg',             url:'https://ambientcg.com/view?id=Bricks038'},
+  Exterior_Stylized_Concrete: {asset:'Concrete023',       source:'ambientCG', file:'Exterior_Stylized_Concrete_BaseColor.jpg', url:'https://ambientcg.com/view?id=Concrete023'},
+  Interior_Drywall_Warm:      {asset:'PaintedPlaster003', source:'ambientCG', file:'Interior_Drywall_BaseColor.jpg',           url:'https://ambientcg.com/view?id=PaintedPlaster003'},
+  Interior_Drywall_White:     {asset:'PaintedPlaster003', source:'ambientCG', file:'Interior_Drywall_BaseColor.jpg',           url:'https://ambientcg.com/view?id=PaintedPlaster003'},
+  Interior_Drywall_BlueGray:  {asset:'PaintedPlaster003', source:'ambientCG', file:'Interior_Drywall_BaseColor.jpg',           url:'https://ambientcg.com/view?id=PaintedPlaster003'},
+  Interior_Brick:             {asset:'Bricks023',         source:'ambientCG', file:'Interior_Brick_BaseColor.jpg',             url:'https://ambientcg.com/view?id=Bricks023'},
+  Interior_Plain_Concrete:    {asset:'Concrete023',       source:'ambientCG', file:'Interior_Plain_Concrete_BaseColor.jpg',    url:'https://ambientcg.com/view?id=Concrete023'},
+  Interior_Wallpaper_Muted:   {asset:'Fabric022',         source:'ambientCG', file:'Interior_Wallpaper_Muted_BaseColor.jpg',   url:'https://ambientcg.com/view?id=Fabric022'},
+  Interior_Marble:            {asset:'Marble012',         source:'ambientCG', file:'Interior_Marble_BaseColor.jpg',            url:'https://ambientcg.com/view?id=Marble012'},
+  Ceiling_Tiles:              {asset:'OfficeCeiling001',  source:'ambientCG', file:'Ceiling_Tiles_BaseColor.jpg',              url:'https://ambientcg.com/view?id=OfficeCeiling001'},
+  Floor_Wood_Dark:            {asset:'WoodFloor040',      source:'ambientCG', file:'Floor_Wood_Dark_BaseColor.jpg',            url:'https://ambientcg.com/view?id=WoodFloor040'},
+  Floor_Carpet_Charcoal:      {asset:'Carpet012',         source:'ambientCG', file:'Floor_Carpet_BaseColor.jpg',               url:'https://ambientcg.com/view?id=Carpet012'},
+  Floor_Carpet_Brown:         {asset:'Carpet012',         source:'ambientCG', file:'Floor_Carpet_BaseColor.jpg',               url:'https://ambientcg.com/view?id=Carpet012'},
+  Floor_Carpet_BlueGray:      {asset:'Carpet012',         source:'ambientCG', file:'Floor_Carpet_BaseColor.jpg',               url:'https://ambientcg.com/view?id=Carpet012'},
+  Floor_Tile_Slate:           {asset:'Tiles027',          source:'ambientCG', file:'Floor_Tile_Slate_BaseColor.jpg',           url:'https://ambientcg.com/view?id=Tiles027'},
+  Floor_Marble_Gray:          {asset:'Marble001',         source:'ambientCG', file:'Floor_Marble_Gray_BaseColor.jpg',          url:'https://ambientcg.com/view?id=Marble001'},
+  Floor_Concrete:             {asset:'Concrete040',       source:'ambientCG', file:'Floor_Concrete_BaseColor.jpg',             url:'https://ambientcg.com/view?id=Concrete040'},
+  Roof_Concrete:              {asset:'Concrete023',       source:'ambientCG', file:'Roof_Concrete_BaseColor.jpg',              url:'https://ambientcg.com/view?id=Concrete023'},
+  Pillar_Concrete:            {asset:'Concrete023',       source:'ambientCG', file:'Pillar_Concrete_BaseColor.jpg',            url:'https://ambientcg.com/view?id=Concrete023'},
+  Stair_Concrete:             {asset:'Concrete023',       source:'ambientCG', file:'Stair_Concrete_BaseColor.jpg',             url:'https://ambientcg.com/view?id=Concrete023'},
+  Cut_Edge_Concrete:          {asset:'Concrete023',       source:'ambientCG', file:'Cut_Edge_Concrete_BaseColor.jpg',          url:'https://ambientcg.com/view?id=Concrete023'}
+};
+const UV_METERS_PER_TILE = 1.0; // every texture repeats once per meter; swap image files without repainting
+
+const PAINT_TARGETS = {
+  exteriorWall: {label:'Exterior walls', cats:['exteriorWall']},
+  interiorWall: {label:'Interior walls', cats:['interiorWall']},
+  floor:        {label:'Floors', cats:['floor']},
+  ceiling:      {label:'Ceilings', cats:['ceiling','interiorWall']},
+  roof:         {label:'Roofs', cats:['roof']},
+  pillar:       {label:'Pillars', cats:['pillar']},
+  stair:        {label:'Stairs', cats:['stair']},
+  door:         {label:'Doors', cats:['door']},
+};
+let defaultMats = {
+  exteriorWall:'Exterior_Brick', interiorWall:'Interior_Drywall_Warm', floor:'Floor_Wood_Dark',
+  ceiling:'Interior_Drywall_Warm', roof:'Roof_Concrete', trim:'Trim_Foundation_Concrete',
+  pillar:'Pillar_Concrete', stair:'Stair_Concrete', door:'Door_Wood', glass:'Window_Glass', edge:'Cut_Edge_Concrete'
+};
+let foundationTrimOn = false;
+let paintTarget = 'exteriorWall';
+
+const HANDLE_OFF = 0.55;
+const MIN_WALL = 0.5;
+const EPS = 1e-4;
+
+/* 3D export dimensions (meters) */
+const FLOOR_H = 3.0;        // level-to-level height
+const FLOOR_T = 0.2;        // floor slab thickness
+const DOOR_H = 2.1;         // door opening height
+const DOOR_PANEL_T = 0.05;  // mock door panel thickness
+const WIN_SILL = 0.9;       // window sill height above the floor
+const WIN_H = 1.4;          // window opening height
+const HALF_H = 1.0;         // half wall height above the floor surface
+
+const STAIR_TYPES = {
+  straight: {w: 1.0, h: 3.0, label: 'STRAIGHT'},
+  wide:     {w: 1.6, h: 3.0, label: 'WIDE'},
+  uturn:    {w: 2.0, h: 2.6, label: 'U-TURN', landing: 1.0},
+};
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const wrap = document.getElementById('canvaswrap');
+const tipEl = document.getElementById('tip');
+const coordsEl = document.getElementById('coords');
+const zoomEl = document.getElementById('zoom');
+const floorInd = document.getElementById('floorInd');
+
+const css = getComputedStyle(document.documentElement);
+const C = {
+  paper: css.getPropertyValue('--paper').trim(),
+  ink: css.getPropertyValue('--ink').trim(),
+  accent: css.getPropertyValue('--accent').trim(),
+  interior: css.getPropertyValue('--interior').trim(),
+  handle: css.getPropertyValue('--handle').trim(),
+  invalid: css.getPropertyValue('--invalid').trim(),
+  gridMinor: css.getPropertyValue('--grid-minor').trim(),
+  gridMajor: css.getPropertyValue('--grid-major').trim(),
+};
+
+/* ---------------- state ---------------- */
+let walls = [];    // {id, fl, kind:'wall'|'interior', x1,y1,x2,y2, windows, roomId|null}
+let rooms = [];    // {id, fl, pts:[4], name}   (walls with roomId === id belong to it)
+let doors = [];    // {id, fl, wallId, s, side, hinge}
+let stairs = [];   // {id, fl, cx, cy, type, rot}   rot: 0|90|180|270
+let cutouts = [];  // {id, fl, x, y, w, h}
+let pillars = [];  // {id, fl, cx, cy, w, d}
+let ids = 1;
+let nFloors = 1;
+let curFl = 1;
+
+let tool = 'wall';
+let stairType = 'straight';
+let doorType = 'single';
+let windowType = 'standard';
+let snapOn = true;
+let sel = null;
+let mouse = {x:0, y:0, in:false};
+let drag = null;
+let ghost = null;              // door ghost
+let stairGhost = null;         // {cx, cy, type, rot, valid}
+let pillarGhost = null;        // {cx, cy, w, d}
+let ghostSide = 1, ghostHinge = 1, stairRot = 0;
+let hoverWall = null;
+let spaceHeld = false;
+
+let view = {x: -1.5, y: -1.5, s: 46};
+let undoStack = [], redoStack = [];
+let warnTimer = null;
+
+/* ---------------- geometry helpers ---------------- */
+const S = p => ({x:(p.x - view.x) * view.s, y:(p.y - view.y) * view.s});
+const Wd = p => ({x: p.x / view.s + view.x, y: p.y / view.s + view.y});
+const snap = v => Math.round(v / GRID) * GRID;
+const snapPt = p => snapOn ? {x: snap(p.x), y: snap(p.y)} : {x:p.x, y:p.y};
+const len = w => Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+const dir = w => { const l = len(w) || 1; return {x:(w.x2 - w.x1)/l, y:(w.y2 - w.y1)/l}; };
+const nrm = w => { const u = dir(w); return {x:-u.y, y:u.x}; };
+const mid = w => ({x:(w.x1 + w.x2)/2, y:(w.y1 + w.y2)/2});
+const fmt = v => { const s = (Math.round(v*100)/100).toFixed(2).replace(/0+$/,'').replace(/\.$/,''); return s || '0'; };
+const same = (a, b) => Math.abs(a.x - b.x) < EPS && Math.abs(a.y - b.y) < EPS;
+
+const flWalls = (fl = curFl) => walls.filter(w => w.fl === fl);
+const flRooms = (fl = curFl) => rooms.filter(r => r.fl === fl);
+const flStairs = (fl = curFl) => stairs.filter(s => s.fl === fl);
+const flCutouts = (fl = curFl) => cutouts.filter(c => c.fl === fl);
+const flPillars = (fl = curFl) => pillars.filter(p => p.fl === fl);
+
+const matName = name => (name && MATERIALS[name]) ? name : 'Interior_Plain_Concrete';
+const roomMat = (r, target) => matName((r && r.mats && r.mats[target]) || defaultMats[target]);
+const wallMat = (w, target) => matName((w && w.mats && w.mats[target]) || defaultMats[target]);
+function setWallMat(w, target, mat){
+  if (!w) return;
+  w.mats = {...(w.mats || {})};
+  w.mats[target] = matName(mat);
+}
+function setRoomMat(r, target, mat){
+  if (!r) return;
+  r.mats = {...(r.mats || {})};
+  r.mats[target] = matName(mat);
+}
+function faceMats(all = 'Interior_Plain_Concrete'){
+  const m = matName(all);
+  return {wy1:m, wy0:m, bottom:m, wx0:m, top:m, wx1:m};
+}
+
+function distToWall(p, w){
+  const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+  const l2 = dx*dx + dy*dy || 1e-9;
+  let t = ((p.x - w.x1)*dx + (p.y - w.y1)*dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  const proj = {x: w.x1 + t*dx, y: w.y1 + t*dy};
+  return {d: Math.hypot(p.x - proj.x, p.y - proj.y), t, proj};
+}
+function nearestWall(pW, tolPx){
+  let best = null, bd = tolPx / view.s, bestLen = Infinity;
+  for (const w of flWalls()){
+    const r = distToWall(pW, w);
+    const L = len(w);
+    // When multiple room-owned walls sit on the same line, prefer the shorter
+    // segment. This makes erase/select hit the local wall you clicked instead
+    // of a longer wall behind it.
+    if (r.d < bd - 0.01 || (Math.abs(r.d - bd) <= 0.01 && L < bestLen)){
+      bd = r.d; bestLen = L; best = {wall: w, ...r};
+    }
+  }
+  return best;
+}
+function snapToEndpoints(p, rad = 0.3){
+  for (const w of flWalls()){
+    for (const e of [{x:w.x1,y:w.y1},{x:w.x2,y:w.y2}]){
+      if (Math.hypot(p.x - e.x, p.y - e.y) < rad) return {x:e.x, y:e.y};
+    }
+  }
+  return null;
+}
+function handlePos(w, side){
+  const m = mid(w), n = nrm(w);
+  return {x: m.x + n.x * HANDLE_OFF * side, y: m.y + n.y * HANDLE_OFF * side};
+}
+function cursorSide(pW, w){
+  const u = dir(w), m = mid(w);
+  return (u.x * (pW.y - m.y) - u.y * (pW.x - m.x)) >= 0 ? 1 : -1;
+}
+function ptAlong(w, s, off = 0){
+  const u = dir(w), n = nrm(w);
+  return {x: w.x1 + u.x*s + n.x*off, y: w.y1 + u.y*s + n.y*off};
+}
+function doorWidth(d){ return d && d.width ? d.width : (d && d.type === 'double' ? DOUBLE_DOOR_W : DOOR_W); }
+function doorSpans(w){ return doors.filter(d => d.wallId === w.id).map(d => { const dw = doorWidth(d); return [d.s - dw/2, d.s + dw/2]; }); }
+function windowSpec(w){
+  const key = (w && w.windowType && WINDOW_TYPES[w.windowType]) ? w.windowType : 'standard';
+  return {key, ...WINDOW_TYPES[key]};
+}
+function wallIsSharedRoomBoundary(w){ return roomOf(w) !== null && sharedBoundaryWalls(w).length > 0; }
+function windowAllowedOnWall(w){ return !!w && w.kind === 'wall' && !wallIsSharedRoomBoundary(w); }
+function mergeAxisIntervals(intervals, loLimit, hiLimit){
+  const clipped = intervals
+    .map(iv => ({lo: Math.max(loLimit, Math.min(iv.lo, iv.hi)), hi: Math.min(hiLimit, Math.max(iv.lo, iv.hi))}))
+    .filter(iv => iv.hi - iv.lo > 0.02)
+    .sort((a, b) => a.lo - b.lo);
+  const merged = [];
+  for (const iv of clipped){
+    const last = merged[merged.length - 1];
+    if (last && iv.lo <= last.hi + 0.02) last.hi = Math.max(last.hi, iv.hi);
+    else merged.push({...iv});
+  }
+  return merged;
+}
+function subtractAxisIntervals(baseIntervals, blockers){
+  let clear = baseIntervals.map(iv => ({...iv}));
+  for (const block of blockers){
+    const next = [];
+    for (const seg of clear){
+      if (block.hi <= seg.lo + EPS || block.lo >= seg.hi - EPS) next.push(seg);
+      else {
+        if (block.lo - seg.lo > 0.02) next.push({lo: seg.lo, hi: block.lo});
+        if (seg.hi - block.hi > 0.02) next.push({lo: block.hi, hi: seg.hi});
+      }
+    }
+    clear = next;
+  }
+  return clear;
+}
+function windowBlockIntervals(w, L){
+  const blockers = [];
+  // Door spans are hard blockers so changing window size never leaves a window crossing a doorway.
+  for (const [a, b] of doorSpans(w)) blockers.push({lo: a - 0.15, hi: b + 0.15});
+
+  // Perpendicular walls/interior partitions are local blockers. The old logic laid
+  // windows across the whole wall first, then deleted any that crossed a wall; after
+  // switching from a wide window back to standard that could leave only one window.
+  // This instead splits the wall into clear bays and lays out the selected type in each bay.
+  const A = wallAxisInfo(w);
+  if (A){
+    for (const o of walls.filter(o => o.fl === w.fl && o.id !== w.id)){
+      const B = wallAxisInfo(o);
+      if (!B || A.axis === B.axis) continue;
+      const crosses = B.coord >= A.lo - EPS && B.coord <= A.hi + EPS &&
+                      A.coord >= B.lo - EPS && A.coord <= B.hi + EPS;
+      if (!crosses) continue;
+      const s = wallSForAxisCoord(w, B.coord);
+      // Ignore true room-corner endpoints; the normal window margin already protects those.
+      if (s <= 0.12 || s >= L - 0.12) continue;
+      const pad = ((o.kind === 'interior' ? INT_T : WALL_T) / 2) + 0.12;
+      blockers.push({lo: s - pad, hi: s + pad});
+    }
+  }
+  return mergeAxisIntervals(blockers, 0, L);
+}
+function windowSpans(w){
+  const spec = windowSpec(w);
+  const L = len(w);
+  if (!w.windows || !windowAllowedOnWall(w) || L - 2 * WIN_MARGIN < spec.length) return [];
+
+  const base = [{lo: WIN_MARGIN, hi: L - WIN_MARGIN}];
+  const clearBays = subtractAxisIntervals(base, windowBlockIntervals(w, L));
+  const out = [];
+  for (const bay of clearBays){
+    const bayLen = bay.hi - bay.lo;
+    const n = Math.floor((bayLen + WIN_GAP) / (spec.length + WIN_GAP));
+    if (n <= 0) continue;
+    const total = n * spec.length + (n - 1) * WIN_GAP;
+    const start = bay.lo + (bayLen - total) / 2;
+    for (let i = 0; i < n; i++){
+      const s0 = start + i * (spec.length + WIN_GAP);
+      const s1 = s0 + spec.length;
+      out.push({s0, s1, type: spec.key, sill: spec.sill, height: spec.height});
+    }
+  }
+  return out;
+}
+function polyArea(pts){
+  let a = 0;
+  for (let i = 0; i < pts.length; i++){
+    const p = pts[i], q = pts[(i+1) % pts.length];
+    a += p.x * q.y - q.x * p.y;
+  }
+  return Math.abs(a) / 2;
+}
+function pointInPoly(p, pts){
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++){
+    const a = pts[i], b = pts[j];
+    if ((a.y > p.y) !== (b.y > p.y) &&
+        p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+function bbox(pts){
+  let x0 = 1/0, y0 = 1/0, x1 = -1/0, y1 = -1/0;
+  for (const p of pts){ x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+  return {x0, y0, x1, y1};
+}
+function boxOverlap(a, b, shrink = 0.02){
+  return a.x0 + shrink < b.x1 && a.x1 - shrink > b.x0 &&
+         a.y0 + shrink < b.y1 && a.y1 - shrink > b.y0;
+}
+// collinear-overlap test between a candidate segment and existing walls on this floor
+function overlapsExistingWall(a, b, ignoreId = null){
+  const ux = b.x - a.x, uy = b.y - a.y;
+  const L = Math.hypot(ux, uy) || 1;
+  const u = {x: ux/L, y: uy/L};
+  for (const w of flWalls()){
+    if (w.id === ignoreId) continue;
+    const v = dir(w);
+    if (Math.abs(u.x * v.y - u.y * v.x) > 1e-3) continue;           // not parallel
+    const off = Math.abs(u.x * (w.y1 - a.y) - u.y * (w.x1 - a.x));  // perpendicular distance
+    if (off > 0.03) continue;                                        // not on same line
+    const t1 = (w.x1 - a.x) * u.x + (w.y1 - a.y) * u.y;
+    const t2 = (w.x2 - a.x) * u.x + (w.y2 - a.y) * u.y;
+    const lo = Math.min(t1, t2), hi = Math.max(t1, t2);
+    if (Math.min(hi, L) - Math.max(lo, 0) > 0.02) return true;      // 1D interval overlap
+  }
+  return false;
+}
+const roomOf = w => (w && w.roomId != null) ? w.roomId : null;
+// collinear-overlap test between two specific walls (same line, shared span)
+function wallsCollinearOverlap(a, b){
+  const ua = dir(a), ub = dir(b);
+  if (Math.abs(ua.x * ub.y - ua.y * ub.x) > 1e-3) return false;            // not parallel
+  const off = Math.abs(ua.x * (b.y1 - a.y1) - ua.y * (b.x1 - a.x1));       // perpendicular distance
+  if (off > 0.03) return false;                                            // not on the same line
+  const t1 = (b.x1 - a.x1) * ua.x + (b.y1 - a.y1) * ua.y;
+  const t2 = (b.x2 - a.x1) * ua.x + (b.y2 - a.y1) * ua.y;
+  const lo = Math.min(t1, t2), hi = Math.max(t1, t2);
+  return Math.min(hi, len(a)) - Math.max(lo, 0) > 0.02;                    // 1D interval overlap
+}
+// Axis helpers used by both the editor and the OBJ exporter. Walls are orthogonal,
+// so a shared boundary is just an overlapping interval on the same x or y line.
+function wallAxisInfo(w){
+  const horiz = Math.abs(w.y1 - w.y2) < 1e-3;
+  const vert = Math.abs(w.x1 - w.x2) < 1e-3;
+  if (!horiz && !vert) return null;
+  const a = horiz ? w.x1 : w.y1, b = horiz ? w.x2 : w.y2;
+  return {
+    axis: horiz ? 'h' : 'v',
+    coord: horiz ? w.y1 : w.x1,
+    a, b, lo: Math.min(a, b), hi: Math.max(a, b),
+    sign: b >= a ? 1 : -1
+  };
+}
+function axisCoordOfWallPoint(w, p){
+  const A = wallAxisInfo(w);
+  return !A ? 0 : (A.axis === 'h' ? p.x : p.y);
+}
+function wallSForAxisCoord(w, c){
+  const A = wallAxisInfo(w);
+  return !A ? 0 : (A.sign > 0 ? c - A.a : A.a - c);
+}
+function sameWallLine(a, b){
+  const A = wallAxisInfo(a), B = wallAxisInfo(b);
+  return !!(A && B && A.axis === B.axis && Math.abs(A.coord - B.coord) < 0.03);
+}
+function wallOverlapAxisInterval(a, b){
+  const A = wallAxisInfo(a), B = wallAxisInfo(b);
+  if (!A || !B || !sameWallLine(a, b)) return null;
+  const lo = Math.max(A.lo, B.lo), hi = Math.min(A.hi, B.hi);
+  return hi - lo > 0.02 ? {lo, hi} : null;
+}
+function normalizeAxisIntervals(w, intervals){
+  const A = wallAxisInfo(w);
+  if (!A) return [];
+  const clipped = intervals
+    .map(iv => ({lo: Math.max(A.lo, Math.min(iv.lo, iv.hi)), hi: Math.min(A.hi, Math.max(iv.lo, iv.hi))}))
+    .filter(iv => iv.hi - iv.lo > 0.02)
+    .sort((a, b) => a.lo - b.lo);
+  const merged = [];
+  for (const iv of clipped){
+    const last = merged[merged.length - 1];
+    if (last && iv.lo <= last.hi + 0.02) last.hi = Math.max(last.hi, iv.hi);
+    else merged.push({...iv});
+  }
+  return merged;
+}
+function wallSegmentFromAxisInterval(w, lo, hi, idOverride = null){
+  const A = wallAxisInfo(w);
+  const out = {...w, id: idOverride == null ? ids++ : idOverride};
+  if (A.axis === 'h'){
+    out.y1 = out.y2 = A.coord;
+    if (A.sign > 0){ out.x1 = lo; out.x2 = hi; }
+    else { out.x1 = hi; out.x2 = lo; }
+  } else {
+    out.x1 = out.x2 = A.coord;
+    if (A.sign > 0){ out.y1 = lo; out.y2 = hi; }
+    else { out.y1 = hi; out.y2 = lo; }
+  }
+  return out;
+}
+function spanTouchesIntervals(span, intervals){
+  const lo = Math.min(span.lo, span.hi), hi = Math.max(span.lo, span.hi);
+  return intervals.some(iv => Math.min(hi, iv.hi) - Math.max(lo, iv.lo) > 0.02);
+}
+function axisSpanForDoor(w, d){
+  const dw = doorWidth(d);
+  const a = axisCoordOfWallPoint(w, ptAlong(w, d.s - dw/2));
+  const b = axisCoordOfWallPoint(w, ptAlong(w, d.s + dw/2));
+  return {lo: Math.min(a, b), hi: Math.max(a, b)};
+}
+function axisCoordInInterval(c, iv){ return c >= iv.lo - EPS && c <= iv.hi + EPS; }
+
+/* Cut only the requested axis spans out of a wall. This is used when erasing
+   a shared boundary: if Room A shares only part of Room B's longer wall, Room B's
+   wall is split and only the shared section disappears. */
+function cutWallByAxisIntervals(w, removeIntervals){
+  const A = wallAxisInfo(w);
+  if (!A) return;
+  const cuts = normalizeAxisIntervals(w, removeIntervals);
+  if (!cuts.length) return;
+
+  let kept = [{lo: A.lo, hi: A.hi}];
+  for (const cut of cuts){
+    const next = [];
+    for (const seg of kept){
+      if (cut.hi <= seg.lo + EPS || cut.lo >= seg.hi - EPS) next.push(seg);
+      else {
+        if (cut.lo - seg.lo > 0.02) next.push({lo: seg.lo, hi: cut.lo});
+        if (seg.hi - cut.hi > 0.02) next.push({lo: cut.hi, hi: seg.hi});
+      }
+    }
+    kept = next;
+  }
+
+  const oldDoors = doors.filter(d => d.wallId === w.id);
+  doors = doors.filter(d => d.wallId !== w.id);
+  const idx = walls.findIndex(x => x.id === w.id);
+  if (idx < 0) return;
+
+  if (!kept.length){
+    walls.splice(idx, 1);
+    if (sel === w.id) sel = null;
+    return;
+  }
+
+  const newSegs = kept.map((seg, i) => wallSegmentFromAxisInterval(w, seg.lo, seg.hi, i === 0 ? w.id : null));
+  walls.splice(idx, 1, ...newSegs);
+
+  for (const d of oldDoors){
+    if (spanTouchesIntervals(axisSpanForDoor(w, d), cuts)) continue;
+    const c = axisCoordOfWallPoint(w, ptAlong(w, d.s));
+    const target = newSegs.find(sw => {
+      const SA = wallAxisInfo(sw);
+      return SA && axisCoordInInterval(c, {lo: SA.lo, hi: SA.hi});
+    });
+    if (!target) continue;
+    const s = wallSForAxisCoord(target, c);
+    if (s > DOOR_W/2 + 0.03 && s < len(target) - DOOR_W/2 - 0.03)
+      doors.push({...d, wallId: target.id, s});
+  }
+}
+function eraseSharedBoundarySpans(w, shared){
+  // Legacy helper kept for older plans. The normal eraser no longer uses broad
+  // interval cutting because it could delete a whole long neighbouring wall when
+  // the user only wanted to remove a small local segment.
+  const targets = new Map();
+  for (const o of shared){
+    const iv = wallOverlapAxisInterval(w, o);
+    if (!iv) continue;
+    if (!targets.has(w.id)) targets.set(w.id, {wall:w, intervals:[]});
+    targets.get(w.id).intervals.push(iv);
+    if (!targets.has(o.id)) targets.set(o.id, {wall:o, intervals:[]});
+    targets.get(o.id).intervals.push(iv);
+  }
+  for (const {wall, intervals} of targets.values()) cutWallByAxisIntervals(wall, intervals);
+}
+
+// walls of *other* rooms that sit on top of this wall = a shared room-to-room boundary
+function sharedBoundaryWalls(w){
+  return walls.filter(o => o.fl === w.fl && o.id !== w.id &&
+    roomOf(o) !== roomOf(w) && wallsCollinearOverlap(w, o));
+}
+function exactSharedCounterpartWalls(w){
+  const A = wallAxisInfo(w);
+  if (!A) return [];
+  return sharedBoundaryWalls(w).filter(o => {
+    const B = wallAxisInfo(o);
+    if (!B || !sameWallLine(w, o)) return false;
+    return Math.abs(A.lo - B.lo) < 0.04 && Math.abs(A.hi - B.hi) < 0.04;
+  });
+}
+function stairRect(st){ // world-space AABB of a stair (rot swaps w/h)
+  const t = STAIR_TYPES[st.type];
+  const swap = st.rot % 180 !== 0;
+  const w = swap ? t.h : t.w, h = swap ? t.w : t.h;
+  return {x0: st.cx - w/2, y0: st.cy - h/2, x1: st.cx + w/2, y1: st.cy + h/2};
+}
+function pillarRect(p){
+  const w = p.w || PILLAR_W, d = p.d || PILLAR_D;
+  return {x0:p.cx - w/2, y0:p.cy - d/2, x1:p.cx + w/2, y1:p.cy + d/2};
+}
+function roomContainsOrTouchesPoint(r, p, tol = 0.16){
+  if (pointInPoly(p, r.pts)) return true;
+  const b = bbox(r.pts);
+  return p.x >= b.x0 - tol && p.x <= b.x1 + tol && p.y >= b.y0 - tol && p.y <= b.y1 + tol;
+}
+
+/* ---------------- undo ---------------- */
+function snapshot(){ return JSON.stringify({walls, rooms, doors, stairs, cutouts, pillars, ids, nFloors, defaultMats, foundationTrimOn}); }
+function pushUndo(){
+  undoStack.push(snapshot());
+  if (undoStack.length > 100) undoStack.shift();
+  redoStack.length = 0;
+  syncButtons();
+}
+function restore(json){
+  const s = JSON.parse(json);
+  walls = s.walls || []; rooms = s.rooms || []; doors = s.doors || [];
+  stairs = s.stairs || []; cutouts = s.cutouts || []; pillars = s.pillars || []; ids = s.ids; nFloors = s.nFloors;
+  if (curFl > nFloors) curFl = nFloors;
+  sel = null; ghost = null; stairGhost = null; pillarGhost = null;
+  buildFloorPanel(); syncButtons(); draw();
+}
+function undo(){ if (undoStack.length){ redoStack.push(snapshot()); restore(undoStack.pop()); } }
+function redo(){ if (redoStack.length){ undoStack.push(snapshot()); restore(redoStack.pop()); } }
+
+function warn(msg){
+  tipEl.classList.add('warn');
+  tipEl.innerHTML = msg;
+  clearTimeout(warnTimer);
+  warnTimer = setTimeout(() => { tipEl.classList.remove('warn'); tipEl.innerHTML = TIPS[tool]; }, 2200);
+}
+
+/* ---------------- mutations ---------------- */
+function addWall(a, b, kind){
+  // Blueprint tracing mode is permissive: intentional overlapping / coincident
+  // walls are allowed, and the OBJ exporter is responsible for culling exact
+  // duplicate hidden faces. This makes hallways and unusual real plans easier
+  // to sketch without fighting the editor.
+  pushUndo();
+  walls.push({id: ids++, fl: curFl, kind, x1:a.x, y1:a.y, x2:b.x, y2:b.y, windows:false, roomId:null});
+}
+function extrudePts(w, d){
+  const n = nrm(w);
+  const p1 = {x:w.x1, y:w.y1}, p2 = {x:w.x2, y:w.y2};
+  return [p1, p2, {x:p2.x + n.x*d, y:p2.y + n.y*d}, {x:p1.x + n.x*d, y:p1.y + n.y*d}];
+}
+function extrudeValid(w, d){
+  // Real blueprints often need odd hallway/room overlaps while tracing. Allow
+  // the sketch operation and let export-time slab/wall de-duplication clean up
+  // the final mesh as much as possible.
+  return true;
+}
+/* Each room owns its own complete set of 4 walls (roomId), so rooms are fully
+   separated: moving one room never reshapes a neighbour. If the extrude base
+   wall is freestanding it's adopted by the new room; if it already belongs to
+   another room, the new room gets its own coincident copy (the shared boundary
+   is then two stacked walls — the .obj exporter merges them into one solid). */
+function extrudeRoom(w, d){
+  if (!extrudeValid(w, d)){ warn('Rooms can’t overlap an existing room.'); return; }
+  pushUndo();
+  const [p1, p2, p3, p4] = extrudePts(w, d);
+  const kind = w.kind;
+  const roomId = ids++;
+  if (roomOf(w) === null) w.roomId = roomId;
+  else walls.push({id: ids++, fl: curFl, kind, x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, windows:false, roomId});
+  walls.push({id: ids++, fl: curFl, kind, x1:p2.x, y1:p2.y, x2:p3.x, y2:p3.y, windows:false, roomId});
+  walls.push({id: ids++, fl: curFl, kind, x1:p3.x, y1:p3.y, x2:p4.x, y2:p4.y, windows:false, roomId});
+  walls.push({id: ids++, fl: curFl, kind, x1:p4.x, y1:p4.y, x2:p1.x, y2:p1.y, windows:false, roomId});
+  rooms.push({id: roomId, fl: curFl, pts: [p1, p2, p3, p4], name: 'Room ' + (flRooms().length + 1)});
+}
+function removeWallsById(idSet){ // no pushUndo here — callers snapshot first
+  walls = walls.filter(w => !idSet.has(w.id));
+  doors = doors.filter(d => !idSet.has(d.wallId));
+  if (idSet.has(sel)) sel = null;
+}
+/* Erase rules for a single wall:
+   - delete the exact wall segment you clicked/selected
+   - if another room has an exact coincident duplicate of the same span, remove
+     that duplicate too so a shared wall can become a clean opening
+   - longer neighbouring walls are never broadly cut by accident */
+function tryEraseWall(w){
+  if (!w) return false;
+  pushUndo();
+  const idSet = new Set([w.id]);
+  for (const o of exactSharedCounterpartWalls(w)) idSet.add(o.id);
+  removeWallsById(idSet);
+  return true;
+}
+/* Erase a room and everything in it: its walls, their doors,
+   and any stairs / cutouts sitting inside its footprint. */
+function eraseRoom(r){
+  pushUndo();
+  const wallIds = new Set(walls.filter(w => w.roomId === r.id).map(w => w.id));
+  removeWallsById(wallIds);
+  stairs = stairs.filter(s => !(s.fl === r.fl && pointInPoly({x:s.cx, y:s.cy}, r.pts)));
+  cutouts = cutouts.filter(c => !(c.fl === r.fl && pointInPoly({x:c.x + c.w/2, y:c.y + c.h/2}, r.pts)));
+  pillars = pillars.filter(p => !(p.fl === r.fl && roomContainsOrTouchesPoint(r, {x:p.cx, y:p.cy})));
+  rooms = rooms.filter(x => x.id !== r.id);
+}
+function doorValid(g){
+  const w = walls.find(x => x.id === g.wallId);
+  if (!w) return false;
+  const dw = doorWidth(g);
+  if (len(w) < dw + 0.2) return false;
+  const s0 = g.s - dw/2, s1 = g.s + dw/2;
+  return !doorSpans(w).some(([a, b]) => s1 > a + 0.02 && s0 < b - 0.02);
+}
+function placeDoor(g){
+  if (!doorValid(g)){ warn('Doors can’t overlap another door.'); return; }
+  pushUndo();
+  doors.push({id: ids++, fl: curFl, wallId: g.wallId, s: g.s, side: g.side, hinge: g.hinge, type: g.type || doorType, width: doorWidth(g)});
+}
+function placePillar(p){
+  const hit = flPillars().some(o => Math.hypot(o.cx - p.cx, o.cy - p.cy) < 0.05);
+  if (hit){ warn('A pillar is already on that grid point.'); return; }
+  pushUndo();
+  pillars.push({id: ids++, fl: curFl, cx: p.cx, cy: p.cy, w: p.w || PILLAR_W, d: p.d || PILLAR_D});
+}
+
+/* --- wall moving (Select tool) ---
+   Body drag  = translate perpendicular to the wall (resizes the room it belongs to).
+   Endpoint   = slide along the wall's own axis (lengthen / shorten).
+   v0.3: rooms are fully separated — a body drag only carries along walls and
+   corners of the SAME room (or, for freestanding walls, other freestanding
+   walls sharing an endpoint). A neighbouring room's coincident wall stays put,
+   so dragging one room never deforms another. */
+function moveWallBody(w, delta){ // delta is perpendicular {x,y}
+  const e1 = {x: w.x1, y: w.y1}, e2 = {x: w.x2, y: w.y2};
+  // door world-positions on connected walls, to restore after stretch
+  const affected = walls.filter(o => o.id !== w.id && o.fl === w.fl &&
+    roomOf(o) === roomOf(w) &&
+    (same({x:o.x1,y:o.y1}, e1) || same({x:o.x1,y:o.y1}, e2) ||
+     same({x:o.x2,y:o.y2}, e1) || same({x:o.x2,y:o.y2}, e2)));
+  const doorPos = new Map();
+  for (const o of affected)
+    for (const d of doors.filter(d => d.wallId === o.id))
+      doorPos.set(d.id, ptAlong(o, d.s));
+  // move coincident corners of this wall's own room only
+  for (const r of rooms.filter(r => r.fl === w.fl && r.id === roomOf(w)))
+    for (const p of r.pts)
+      if (same(p, e1) || same(p, e2)){ p.x += delta.x; p.y += delta.y; }
+  // move coincident wall endpoints
+  for (const o of affected){
+    if (same({x:o.x1,y:o.y1}, e1) || same({x:o.x1,y:o.y1}, e2)){ o.x1 += delta.x; o.y1 += delta.y; }
+    if (same({x:o.x2,y:o.y2}, e1) || same({x:o.x2,y:o.y2}, e2)){ o.x2 += delta.x; o.y2 += delta.y; }
+  }
+  // move the wall itself
+  w.x1 += delta.x; w.y1 += delta.y; w.x2 += delta.x; w.y2 += delta.y;
+  // restore door positions on stretched walls
+  for (const o of affected){
+    const L = len(o);
+    for (const d of doors.filter(d => d.wallId === o.id)){
+      const p = doorPos.get(d.id);
+      const u = dir(o);
+      d.s = Math.max(doorWidth(d)/2 + 0.05, Math.min(L - doorWidth(d)/2 - 0.05,
+        (p.x - o.x1)*u.x + (p.y - o.y1)*u.y));
+    }
+  }
+}
+
+/* ---------------- rendering ---------------- */
+function resize(){
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = wrap.clientWidth * dpr;
+  cv.height = wrap.clientHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+const clamp = (lo, v, hi) => Math.max(lo, Math.min(hi, v));
+// line weights: scale with zoom but clamped so extremes never look weird
+const wallPx = () => clamp(2.5, WALL_T * view.s, 8);
+const intPx  = () => clamp(1.8, INT_T * view.s, 5.5);
+const pxFor  = w => w.kind === 'interior' ? intPx() : wallPx();
+
+function line(a, b){ ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+
+function drawGrid(){
+  const wpx = wrap.clientWidth, hpx = wrap.clientHeight;
+  const x1 = Wd({x:wpx, y:hpx}).x, y1 = Wd({x:wpx, y:hpx}).y;
+  const minorVisible = GRID * view.s >= 7;
+  const step = minorVisible ? GRID : MAJOR;
+  ctx.lineWidth = 1;
+  for (let x = Math.floor(view.x/step)*step; x <= x1; x += step){
+    const major = Math.abs(x / MAJOR - Math.round(x / MAJOR)) < 1e-6;
+    ctx.strokeStyle = major ? C.gridMajor : C.gridMinor;
+    const sx = S({x, y:0}).x;
+    line({x:sx, y:0}, {x:sx, y:hpx});
+  }
+  for (let y = Math.floor(view.y/step)*step; y <= y1; y += step){
+    const major = Math.abs(y / MAJOR - Math.round(y / MAJOR)) < 1e-6;
+    ctx.strokeStyle = major ? C.gridMajor : C.gridMinor;
+    const sy = S({x:0, y}).y;
+    line({x:0, y:sy}, {x:wpx, y:sy});
+  }
+}
+
+function drawFloorBelowGhost(){
+  if (curFl <= 1) return;
+  const fl = curFl - 1;
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  // rooms as faint fills
+  for (const r of rooms.filter(r => r.fl === fl)){
+    ctx.beginPath();
+    r.pts.forEach((p, i) => { const s = S(p); i ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y); });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(27,42,74,.06)';
+    ctx.fill();
+  }
+  // walls as grey lines
+  for (const w of walls.filter(w => w.fl === fl)){
+    ctx.strokeStyle = '#9aa2ad';
+    ctx.lineWidth = pxFor(w);
+    ctx.lineCap = 'butt';
+    line(S({x:w.x1, y:w.y1}), S({x:w.x2, y:w.y2}));
+  }
+  // stairs outlines — critical for aligning cutouts
+  for (const st of stairs.filter(s => s.fl === fl)) drawStair(st, true);
+  for (const p of pillars.filter(p => p.fl === fl)) drawPillar(p, true);
+  ctx.restore();
+}
+
+function drawRoom(r){
+  ctx.beginPath();
+  r.pts.forEach((p, i) => { const s = S(p); i ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y); });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(43,108,176,.07)';
+  ctx.fill();
+  const cx = r.pts.reduce((a,p)=>a+p.x,0)/4, cy = r.pts.reduce((a,p)=>a+p.y,0)/4;
+  const c = S({x:cx, y:cy});
+  ctx.fillStyle = 'rgba(27,42,74,.55)';
+  ctx.font = `600 ${clamp(10, view.s*0.28, 16)}px Archivo, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText(r.name, c.x, c.y - 2);
+  ctx.fillStyle = 'rgba(27,42,74,.4)';
+  ctx.font = `500 ${clamp(9, view.s*0.22, 13)}px "IBM Plex Mono", monospace`;
+  ctx.textBaseline = 'top';
+  ctx.fillText(polyArea(r.pts).toFixed(1) + ' m²', c.x, c.y + 2);
+}
+
+function drawCutout(co, isGhost){
+  const a = S({x:co.x, y:co.y}), b = S({x:co.x + co.w, y:co.y + co.h});
+  const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+  const w = Math.abs(b.x - a.x), h = Math.abs(b.y - a.y);
+  ctx.save();
+  ctx.globalAlpha = isGhost ? 0.6 : 1;
+  ctx.fillStyle = C.paper;
+  ctx.fillRect(x, y, w, h);
+  // diagonal hatch
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(27,42,74,.22)';
+  ctx.lineWidth = 1;
+  const step = 9;
+  for (let i = -h; i < w; i += step){
+    ctx.beginPath();
+    ctx.moveTo(x + i, y + h);
+    ctx.lineTo(x + i + h, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.globalAlpha = isGhost ? 0.6 : 1;
+  ctx.strokeStyle = isGhost ? C.handle : 'rgba(27,42,74,.6)';
+  ctx.setLineDash([5, 4]);
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(x, y, w, h);
+  ctx.setLineDash([]);
+  if (w > 56 && h > 20){
+    ctx.fillStyle = 'rgba(27,42,74,.45)';
+    ctx.font = `500 ${clamp(8, view.s*0.18, 11)}px "IBM Plex Mono", monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('OPEN TO BELOW', x + w/2, y + h/2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawStair(st, ghosted){
+  const t = STAIR_TYPES[st.type];
+  const c = S({x: st.cx, y: st.cy});
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.rotate(st.rot * Math.PI / 180);
+  const w = t.w * view.s, h = t.h * view.s;
+  const col = ghosted ? '#9aa2ad' : (st.invalid ? C.invalid : C.ink);
+  ctx.globalAlpha = ghosted ? 0.35 : (st.ghost ? 0.6 : 1); // ghosted = floor-below grey; st.ghost = placement preview
+  ctx.strokeStyle = st.ghost ? C.handle : col;
+  ctx.lineWidth = 1.6;
+  ctx.strokeRect(-w/2, -h/2, w, h);
+  ctx.lineWidth = 1;
+  const treadStep = 0.28 * view.s;
+  if (st.type === 'uturn'){
+    const land = t.landing * view.s;
+    // center divider (stops at the landing)
+    line({x:0, y:h/2}, {x:0, y:-h/2 + land});
+    // landing divider
+    line({x:-w/2, y:-h/2 + land}, {x:w/2, y:-h/2 + land});
+    // treads on both flights
+    for (let y = h/2 - treadStep; y > -h/2 + land; y -= treadStep){
+      line({x:-w/2, y}, {x:0, y});
+      line({x:0, y}, {x:w/2, y});
+    }
+    // arrow: up right flight, across landing, marker down-left implied
+    arrow({x:w/4, y:h/2 - 4}, {x:w/4, y:-h/2 + land/2}, st.ghost ? C.handle : col);
+    line({x:w/4, y:-h/2 + land/2}, {x:-w/4, y:-h/2 + land/2});
+  } else {
+    for (let y = h/2 - treadStep; y > -h/2 + treadStep*0.5; y -= treadStep){
+      line({x:-w/2, y}, {x:w/2, y});
+    }
+    arrow({x:0, y:h/2 - 4}, {x:0, y:-h/2 + 8}, st.ghost ? C.handle : col);
+  }
+  if (h > 46){
+    ctx.fillStyle = st.ghost ? C.handle : col;
+    ctx.font = `600 ${clamp(7, view.s*0.16, 10)}px "IBM Plex Mono", monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.save();
+    ctx.translate(st.type === 'uturn' ? -w/4 : 0, h/2 - 12);
+    ctx.fillText('UP', 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+function arrow(a, b, col){
+  ctx.strokeStyle = col; ctx.lineWidth = 1.3;
+  line(a, b);
+  const ang = Math.atan2(b.y - a.y, b.x - a.x);
+  ctx.beginPath();
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x - 6*Math.cos(ang - 0.45), b.y - 6*Math.sin(ang - 0.45));
+  ctx.moveTo(b.x, b.y);
+  ctx.lineTo(b.x - 6*Math.cos(ang + 0.45), b.y - 6*Math.sin(ang + 0.45));
+  ctx.stroke();
+}
+
+function drawPillar(p, ghosted){
+  const r = pillarRect(p);
+  const a = S({x:r.x0, y:r.y0}), b = S({x:r.x1, y:r.y1});
+  const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
+  const w = Math.abs(b.x - a.x), h = Math.abs(b.y - a.y);
+  ctx.save();
+  ctx.globalAlpha = ghosted ? 0.35 : (p.ghost ? 0.65 : 1);
+  ctx.fillStyle = p.ghost ? 'rgba(217,48,37,.18)' : 'rgba(27,42,74,.22)';
+  ctx.strokeStyle = p.ghost ? C.handle : C.ink;
+  ctx.lineWidth = 1.6;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeRect(x, y, w, h);
+  if (w > 12 && h > 12){
+    ctx.beginPath();
+    ctx.moveTo(x + 3, y + 3); ctx.lineTo(x + w - 3, y + h - 3);
+    ctx.moveTo(x + w - 3, y + 3); ctx.lineTo(x + 3, y + h - 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawWall(w){
+  const a = S({x:w.x1, y:w.y1}), b = S({x:w.x2, y:w.y2});
+  const px = pxFor(w);
+  const isSel = sel === w.id;
+  const baseCol = w.kind === 'interior' ? C.interior : C.ink;
+  if (isSel){
+    ctx.strokeStyle = 'rgba(43,108,176,.35)';
+    ctx.lineWidth = px + 7; ctx.lineCap = 'round';
+    line(a, b);
+  }
+  ctx.strokeStyle = isSel ? C.accent : baseCol;
+  ctx.lineWidth = px; ctx.lineCap = 'butt';
+  line(a, b);
+
+  for (const sp of windowSpans(w)){
+    const p0 = S(ptAlong(w, sp.s0)), p1 = S(ptAlong(w, sp.s1));
+    ctx.strokeStyle = C.paper; ctx.lineWidth = px + 2;
+    line(p0, p1);
+    const nS = nrm(w);
+    const t = w.kind === 'interior' ? INT_T : WALL_T;
+    const off = o => s => ({x:s.x + nS.x*o*view.s, y:s.y + nS.y*o*view.s});
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 1.4;
+    line(off(t*0.5)(p0), off(t*0.5)(p1));
+    line(off(-t*0.5)(p0), off(-t*0.5)(p1));
+    ctx.lineWidth = 1;
+    line(p0, p1);
+    ctx.lineWidth = 1.4;
+    line(off(t*0.5)(p0), off(-t*0.5)(p0));
+    line(off(t*0.5)(p1), off(-t*0.5)(p1));
+  }
+
+  for (const d of doors.filter(d => d.wallId === w.id)) drawDoor(w, d, false, true);
+
+  if (isSel){
+    ctx.fillStyle = C.accent;
+    for (const p of [a, b]) ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+  }
+}
+
+function drawDoorLeaf(w, H, closedDir, side, leafW, col){
+  const n = nrm(w);
+  const openDir = {x:n.x * side, y:n.y * side};
+  const T = {x: H.x + openDir.x * leafW, y: H.y + openDir.y * leafW};
+  const O = {x: H.x + closedDir.x * leafW, y: H.y + closedDir.y * leafW};
+  const Hs = S(H), Os = S(O), Ts = S(T);
+  line(Hs, Ts);
+  const a0 = Math.atan2(Os.y - Hs.y, Os.x - Hs.x);
+  const a1 = Math.atan2(Ts.y - Hs.y, Ts.x - Hs.x);
+  let sweep = a1 - a0;
+  while (sweep <= -Math.PI) sweep += Math.PI * 2;
+  while (sweep > Math.PI) sweep -= Math.PI * 2;
+  ctx.beginPath();
+  ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
+  ctx.arc(Hs.x, Hs.y, leafW * view.s, a0, a1, sweep < 0);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(Hs.x, Hs.y, 2.5, 0, Math.PI*2); ctx.fill();
+}
+function drawDoor(w, d, isGhost, valid){
+  const px = pxFor(w);
+  const dw = doorWidth(d);
+  const s0 = d.s - dw/2, s1 = d.s + dw/2;
+  const p0 = S(ptAlong(w, s0)), p1 = S(ptAlong(w, s1));
+  ctx.globalAlpha = isGhost ? 0.6 : 1;
+  ctx.strokeStyle = C.paper; ctx.lineWidth = px + 2; ctx.lineCap = 'butt';
+  line(p0, p1);
+  const u = dir(w);
+  const col = isGhost ? (valid ? C.handle : C.invalid) : (w.kind === 'interior' ? C.interior : C.ink);
+  ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  if ((d.type || 'single') === 'double'){
+    const half = dw / 2;
+    drawDoorLeaf(w, ptAlong(w, s0), u, d.side, half, col);
+    drawDoorLeaf(w, ptAlong(w, s1), {x:-u.x, y:-u.y}, d.side, half, col);
+  } else {
+    const hingeS = d.hinge > 0 ? s0 : s1;
+    const closedDir = d.hinge > 0 ? u : {x:-u.x, y:-u.y};
+    drawDoorLeaf(w, ptAlong(w, hingeS), closedDir, d.side, dw, col);
+  }
+  if (isGhost && !valid){
+    ctx.strokeStyle = C.invalid; ctx.lineWidth = 2;
+    const m = S(ptAlong(w, d.s));
+    line({x:m.x-6, y:m.y-6}, {x:m.x+6, y:m.y+6});
+    line({x:m.x+6, y:m.y-6}, {x:m.x-6, y:m.y+6});
+  }
+  ctx.globalAlpha = 1;
+}
+
+function dimLabel(aW, bW, text, bad){
+  const a = S(aW), b = S(bW);
+  const mx = (a.x + b.x)/2, my = (a.y + b.y)/2;
+  ctx.font = `500 11px "IBM Plex Mono", monospace`;
+  const w = ctx.measureText(text).width + 10;
+  ctx.fillStyle = bad ? C.handle : C.ink;
+  ctx.fillRect(mx - w/2, my - 19, w, 16);
+  ctx.fillStyle = C.paper;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, mx, my - 11);
+}
+
+function draw(){
+  const wpx = wrap.clientWidth, hpx = wrap.clientHeight;
+  ctx.fillStyle = C.paper;
+  ctx.fillRect(0, 0, wpx, hpx);
+  drawGrid();
+  drawFloorBelowGhost();
+
+  for (const r of flRooms()) drawRoom(r);
+  for (const co of flCutouts()) drawCutout(co, false);
+  for (const p of flPillars()) drawPillar(p, false);
+
+  // extrude preview
+  if (drag && drag.mode === 'extrude'){
+    const pts = extrudePts(drag.wall, drag.d);
+    const ok = extrudeValid(drag.wall, drag.d);
+    ctx.beginPath();
+    pts.forEach((p,i)=>{ const s=S(p); i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y); });
+    ctx.closePath();
+    ctx.fillStyle = ok ? 'rgba(217,48,37,.06)' : 'rgba(154,160,166,.15)';
+    ctx.fill();
+    ctx.strokeStyle = ok ? C.handle : C.invalid;
+    ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+    ctx.stroke(); ctx.setLineDash([]);
+    dimLabel(pts[1], pts[2], fmt(Math.abs(drag.d)) + ' m', !ok);
+  }
+
+  for (const w of flWalls()) drawWall(w);
+  for (const st of flStairs()) drawStair(st, false);
+
+  // cutout drag preview
+  if (drag && drag.mode === 'cutout'){
+    const co = {x: Math.min(drag.a.x, drag.b.x), y: Math.min(drag.a.y, drag.b.y),
+                w: Math.abs(drag.b.x - drag.a.x), h: Math.abs(drag.b.y - drag.a.y)};
+    if (co.w > 0.05 && co.h > 0.05) drawCutout(co, true);
+  }
+
+  // wall-draw preview
+  if (drag && drag.mode === 'wall'){
+    const a = S(drag.a), b = S(drag.b);
+    const bad = false;
+    ctx.strokeStyle = drag.kind === 'interior' ? C.interior : C.accent;
+    ctx.lineWidth = drag.kind === 'interior' ? intPx() : wallPx();
+    ctx.setLineDash([8,5]); ctx.lineCap = 'butt';
+    line(a, b); ctx.setLineDash([]);
+    const L = Math.hypot(drag.b.x - drag.a.x, drag.b.y - drag.a.y);
+    if (L > 0.05) dimLabel(drag.a, drag.b, fmt(L) + ' m', bad);
+  }
+
+  // red extrude handle
+  const hw = flWalls().find(w => w.id === (hoverWall ?? sel));
+  if (hw && !drag && (tool === 'wall' || tool === 'interior' || tool === 'select')){
+    const side = cursorSide(Wd(mouse), hw);
+    const hp = S(handlePos(hw, side));
+    ctx.save();
+    ctx.translate(hp.x, hp.y);
+    ctx.rotate(Math.atan2(hw.y2 - hw.y1, hw.x2 - hw.x1));
+    ctx.fillStyle = C.handle;
+    ctx.strokeStyle = C.paper; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.rect(-5, -5, 10, 10); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = C.handle; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(0, -14); ctx.moveTo(-3, -12); ctx.lineTo(0, -15); ctx.lineTo(3, -12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 9); ctx.lineTo(0, 14); ctx.moveTo(-3, 12); ctx.lineTo(0, 15); ctx.lineTo(3, 12); ctx.stroke();
+    ctx.restore();
+  }
+
+  // door ghost
+  if (ghost){
+    const w = walls.find(x => x.id === ghost.wallId);
+    if (w) drawDoor(w, ghost, true, doorValid(ghost));
+  }
+  // stair ghost
+  if (stairGhost) drawStair({...stairGhost, ghost: true}, false);
+  if (pillarGhost) drawPillar({...pillarGhost, ghost: true}, false);
+}
+
+/* ---------------- input ---------------- */
+function localPos(e){
+  const r = cv.getBoundingClientRect();
+  return {x: e.clientX - r.left, y: e.clientY - r.top};
+}
+function orthoB(a, p){ // force horizontal or vertical from a
+  return Math.abs(p.x - a.x) >= Math.abs(p.y - a.y) ? {x: p.x, y: a.y} : {x: a.x, y: p.y};
+}
+
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+cv.addEventListener('mousedown', e => {
+  const p = localPos(e);
+  mouse = {...p, in:true};
+  const pW = Wd(p);
+
+  if (e.button === 1 || (e.button === 0 && spaceHeld)){
+    drag = {mode:'pan', start:p, view0:{...view}};
+    cv.classList.add('panning');
+    e.preventDefault();
+    return;
+  }
+  if (e.button !== 0) return;
+
+  // shift+click on red handle -> extrude
+  if (e.shiftKey && (tool === 'wall' || tool === 'interior' || tool === 'select')){
+    const w = flWalls().find(x => x.id === (hoverWall ?? sel));
+    if (w){
+      const side = cursorSide(pW, w);
+      const hp = S(handlePos(w, side));
+      if (Math.hypot(p.x - hp.x, p.y - hp.y) < 14){
+        drag = {mode:'extrude', wall:w, d:0};
+        return;
+      }
+    }
+  }
+
+  if (tool === 'wall' || tool === 'interior'){
+    let a = pW;
+    const es = snapToEndpoints(a); if (es) a = es;
+    drag = {mode:'wall', kind: tool === 'interior' ? 'interior' : 'wall', a, b:{...a}};
+  }
+  else if (tool === 'select'){
+    const hit = nearestWall(pW, 9);
+    if (hit){
+      sel = hit.wall.id;
+      const w = hit.wall;
+      const aS = S({x:w.x1, y:w.y1}), bS = S({x:w.x2, y:w.y2});
+      const dA = Math.hypot(p.x - aS.x, p.y - aS.y);
+      const dB = Math.hypot(p.x - bS.x, p.y - bS.y);
+      if (dA < 11 || dB < 11){
+        drag = {mode:'endpoint', wall:w, end: dA < dB ? 1 : 2, moved:false, started:false, start:p};
+      } else {
+        drag = {mode:'movewall', wall:w, start:p, startW:pW, acc:{x:0,y:0}, started:false};
+      }
+    } else sel = null;
+    syncButtons();
+  }
+  else if (tool === 'door'){
+    if (ghost) placeDoor(ghost);
+  }
+  else if (tool === 'stairs'){
+    if (stairGhost){
+      pushUndo();
+      stairs.push({id: ids++, fl: curFl, cx: stairGhost.cx, cy: stairGhost.cy, type: stairGhost.type, rot: stairGhost.rot});
+    }
+  }
+  else if (tool === 'pillar'){
+    const c = snapOn ? snapPt(pW) : pW;
+    placePillar({cx:c.x, cy:c.y, w:PILLAR_W, d:PILLAR_D});
+  }
+  else if (tool === 'cutout'){
+    drag = {mode:'cutout', a: snapPt(pW), b: snapPt(pW), startPx: p};
+  }
+  else if (tool === 'erase'){
+    let done = false;
+    for (const d of doors.filter(d => d.fl === curFl)){
+      const w = walls.find(x => x.id === d.wallId);
+      if (!w) continue;
+      const c = ptAlong(w, d.s);
+      if (Math.hypot(pW.x - c.x, pW.y - c.y) < 0.45){
+        pushUndo(); doors = doors.filter(x => x.id !== d.id); done = true; break;
+      }
+    }
+    if (!done){
+      const st = flStairs().find(s => { const r = stairRect(s); return pW.x > r.x0 && pW.x < r.x1 && pW.y > r.y0 && pW.y < r.y1; });
+      if (st){ pushUndo(); stairs = stairs.filter(x => x.id !== st.id); done = true; }
+    }
+    if (!done){
+      const pi = flPillars().find(p => { const r = pillarRect(p); return pW.x > r.x0 && pW.x < r.x1 && pW.y > r.y0 && pW.y < r.y1; });
+      if (pi){ pushUndo(); pillars = pillars.filter(x => x.id !== pi.id); done = true; }
+    }
+    if (!done){
+      const co = flCutouts().find(c => pW.x > c.x && pW.x < c.x + c.w && pW.y > c.y && pW.y < c.y + c.h);
+      if (co){ pushUndo(); cutouts = cutouts.filter(x => x.id !== co.id); done = true; }
+    }
+    if (!done){
+      const hit = nearestWall(pW, 9);
+      if (hit){ tryEraseWall(hit.wall); done = true; }
+    }
+    if (!done){
+      const r = flRooms().find(r => pointInPoly(pW, r.pts));
+      if (r) eraseRoom(r); // wipes the room + its walls, doors, stairs & cutouts inside
+    }
+  }
+  draw();
+});
+
+cv.addEventListener('mousemove', e => {
+  const p = localPos(e);
+  const prevW = Wd(mouse);
+  mouse = {...p, in:true};
+  const pW = Wd(p);
+  coordsEl.textContent = `${pW.x.toFixed(1)}, ${pW.y.toFixed(1)} m`;
+
+  if (drag){
+    if (drag.mode === 'pan'){
+      view.x = drag.view0.x - (p.x - drag.start.x) / view.s;
+      view.y = drag.view0.y - (p.y - drag.start.y) / view.s;
+    }
+    else if (drag.mode === 'wall'){
+      let b = orthoB(drag.a, pW);          // walls are always orthogonal now
+      const es = snapToEndpoints(b); if (es && (es.x === drag.a.x || es.y === drag.a.y)) b = es;
+      drag.b = b;
+    }
+    else if (drag.mode === 'extrude'){
+      const w = drag.wall, n = nrm(w), m = mid(w);
+      drag.d = (pW.x - m.x) * n.x + (pW.y - m.y) * n.y;
+    }
+    else if (drag.mode === 'movewall'){
+      if (!drag.started && Math.hypot(p.x - drag.start.x, p.y - drag.start.y) > 4){
+        drag.started = true;
+        pushUndo();
+      }
+      if (drag.started){
+        const w = drag.wall, n = nrm(w);
+        const dW = {x: pW.x - prevW.x, y: pW.y - prevW.y};
+        const dPerp = dW.x * n.x + dW.y * n.y;     // constrain to perpendicular
+        const delta = {x: n.x * dPerp, y: n.y * dPerp};
+        moveWallBody(w, delta);
+        drag.acc.x += delta.x; drag.acc.y += delta.y;
+      }
+    }
+    else if (drag.mode === 'endpoint'){
+      if (!drag.started && Math.hypot(p.x - drag.start.x, p.y - drag.start.y) > 4){
+        drag.started = true;
+        pushUndo();
+      }
+      if (drag.started){
+        const w = drag.wall, u = dir(w);
+        // slide the endpoint along the wall's own axis only
+        if (drag.end === 1){
+          const t = (pW.x - w.x2) * u.x + (pW.y - w.y2) * u.y;
+          w.x1 = w.x2 + u.x * Math.min(t, -MIN_WALL);
+          w.y1 = w.y2 + u.y * Math.min(t, -MIN_WALL);
+        } else {
+          const t = (pW.x - w.x1) * u.x + (pW.y - w.y1) * u.y;
+          w.x2 = w.x1 + u.x * Math.max(t, MIN_WALL);
+          w.y2 = w.y1 + u.y * Math.max(t, MIN_WALL);
+        }
+        // keep doors inside
+        const L = len(w);
+        for (const d of doors.filter(d => d.wallId === w.id))
+          d.s = Math.max(doorWidth(d)/2 + 0.05, Math.min(L - doorWidth(d)/2 - 0.05, d.s));
+      }
+    }
+    else if (drag.mode === 'cutout'){
+      drag.b = snapOn ? snapPt(pW) : pW;
+    }
+    draw();
+    return;
+  }
+
+  // hover: nearest wall for the red handle
+  if (tool === 'wall' || tool === 'interior' || tool === 'select'){
+    const hit = nearestWall(pW, 48);
+    hoverWall = hit ? hit.wall.id : null;
+  } else hoverWall = null;
+
+  // door ghost
+  if (tool === 'door'){
+    const hit = nearestWall(pW, 14);
+    if (hit){
+      const w = hit.wall, L = len(w), dw = DOOR_TYPES[doorType].w;
+      if (L >= dw + 0.3){
+        let ds = hit.t * L;
+        ds = Math.max(dw/2 + 0.1, Math.min(L - dw/2 - 0.1, ds));
+        if (snapOn) ds = Math.round(ds / (GRID/2)) * (GRID/2);
+        ds = Math.max(dw/2 + 0.1, Math.min(L - dw/2 - 0.1, ds));
+        ghost = {wallId: w.id, s: ds, side: ghostSide, hinge: ghostHinge, type: doorType, width: dw};
+      } else ghost = null;
+    } else ghost = null;
+  } else ghost = null;
+
+  // stair ghost
+  if (tool === 'stairs'){
+    const c = snapOn ? snapPt(pW) : pW;
+    stairGhost = {cx: c.x, cy: c.y, type: stairType, rot: stairRot};
+  } else stairGhost = null;
+
+  if (tool === 'pillar'){
+    const c = snapOn ? snapPt(pW) : pW;
+    pillarGhost = {cx: c.x, cy: c.y, w: PILLAR_W, d: PILLAR_D};
+  } else pillarGhost = null;
+
+  draw();
+});
+
+window.addEventListener('mouseup', e => {
+  if (!drag) return;
+  if (drag.mode === 'wall'){
+    let a = drag.a, b = drag.b;
+    const ea = snapToEndpoints(a), eb = snapToEndpoints(b);
+    a = ea || snapPt(a); b = eb || snapPt(b);
+    b = orthoB(a, b); // re-assert ortho after snapping
+    if (Math.hypot(b.x - a.x, b.y - a.y) >= MIN_WALL) addWall(a, b, drag.kind);
+  }
+  else if (drag.mode === 'extrude'){
+    let d = drag.d;
+    if (snapOn) d = snap(d);
+    if (Math.abs(d) >= MIN_WALL) extrudeRoom(drag.wall, d);
+  }
+  else if (drag.mode === 'movewall' && drag.started){
+    // settle onto the grid: snap the accumulated offset
+    if (snapOn){
+      const w = drag.wall, n = nrm(w);
+      const accPerp = drag.acc.x * n.x + drag.acc.y * n.y;
+      const corr = snap(accPerp) - accPerp;
+      if (Math.abs(corr) > EPS) moveWallBody(w, {x: n.x * corr, y: n.y * corr});
+    }
+  }
+  else if (drag.mode === 'endpoint' && drag.started){
+    const w = drag.wall;
+    if (snapOn){
+      if (drag.end === 1){ const s = snapPt({x:w.x1, y:w.y1}); w.x1 = s.x; w.y1 = s.y; }
+      else { const s = snapPt({x:w.x2, y:w.y2}); w.x2 = s.x; w.y2 = s.y; }
+      if (len(w) < MIN_WALL){ /* undo the over-shrink */ undo(); redoStack.pop(); }
+    }
+  }
+  else if (drag.mode === 'cutout'){
+    const p = localPos(e);
+    const moved = Math.hypot(p.x - drag.startPx.x, p.y - drag.startPx.y) > 5;
+    if (!moved && curFl > 1){
+      // click inside a below-floor staircase -> auto-cut its exact footprint
+      const pW = Wd(p);
+      const st = stairs.filter(s => s.fl === curFl - 1)
+        .find(s => { const r = stairRect(s); return pW.x > r.x0 && pW.x < r.x1 && pW.y > r.y0 && pW.y < r.y1; });
+      if (st){
+        const r = stairRect(st);
+        pushUndo();
+        cutouts.push({id: ids++, fl: curFl, x: r.x0, y: r.y0, w: r.x1 - r.x0, h: r.y1 - r.y0});
+      }
+    } else if (moved){
+      const x = Math.min(drag.a.x, drag.b.x), y = Math.min(drag.a.y, drag.b.y);
+      const w = Math.abs(drag.b.x - drag.a.x), h = Math.abs(drag.b.y - drag.a.y);
+      if (w >= GRID && h >= GRID){
+        pushUndo();
+        cutouts.push({id: ids++, fl: curFl, x, y, w, h});
+      }
+    }
+  }
+  drag = null;
+  cv.classList.remove('panning');
+  draw();
+});
+
+cv.addEventListener('mouseleave', () => { mouse.in = false; ghost = null; stairGhost = null; pillarGhost = null; hoverWall = null; draw(); });
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const p = localPos(e);
+  const before = Wd(p);
+  const f = e.deltaY < 0 ? 1.12 : 1/1.12;
+  view.s = Math.max(8, Math.min(260, view.s * f));
+  const after = Wd(p);
+  view.x += before.x - after.x;
+  view.y += before.y - after.y;
+  zoomEl.textContent = Math.round(view.s / 46 * 100) + '%';
+  draw();
+}, {passive:false});
+
+/* ---------------- keyboard ---------------- */
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  const mod = e.ctrlKey || e.metaKey;
+  if (k === ' '){ spaceHeld = true; e.preventDefault(); }
+  else if (!mod && k === 'v') setTool('select');
+  else if (!mod && k === 'w') setTool('wall');
+  else if (!mod && k === 'i') setTool('interior');
+  else if (!mod && k === 'd') setTool('door');
+  else if (!mod && k === 's') setTool('stairs');
+  else if (!mod && k === 'c') setTool('cutout');
+  else if (!mod && k === 'p') setTool('pillar');
+  else if (!mod && k === 'e') setTool('erase');
+  else if (!mod && k === 'g') toggleSnap();
+  else if (!mod && k === 'n') toggleWindows();
+  else if (k === 'r'){
+    if (tool === 'stairs'){ stairRot = (stairRot + 90) % 360; if (stairGhost) stairGhost.rot = stairRot; }
+    else { ghostSide *= -1; if (ghost) ghost.side = ghostSide; }
+    draw();
+  }
+  else if (k === 'f'){ ghostHinge *= -1; if (ghost) ghost.hinge = ghostHinge; draw(); }
+  else if (k === 'escape'){ drag = null; sel = null; syncButtons(); draw(); }
+  else if (k === 'delete' || k === 'backspace'){
+    const w = walls.find(x => x.id === sel);
+    if (w){ tryEraseWall(w); syncButtons(); draw(); }
+  }
+  else if ((e.ctrlKey || e.metaKey) && k === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && k === 'y'){ e.preventDefault(); redo(); }
+});
+window.addEventListener('keyup', e => { if (e.key === ' ') spaceHeld = false; });
+
+/* =========================================================
+   Wavefront .obj export (v0.3.10)
+   World plan (x, y) + height z  ->  OBJ (X, Y=up, Z=-y),
+   which Blender's importer (Y up, -Z forward) reads with the
+   plan matching the blueprint when viewed from the top.
+   Everything is emitted as axis-aligned boxes:
+   - floor slabs (FLOOR_T thick) per room footprint, cutouts subtracted
+   - room wall corners are capped/mitered without overlapping boxes
+   - shared room-to-room wall spans emitted once
+     (no overlapping geometry), with door + window
+     openings cut out and lintels/sills kept
+   - a thin mock door panel in every doorway
+   - all three staircase types as real steps (u-turn gets two
+     flights + a landing), rotated with their placement
+   - repeated per floor with the correct z offset
+========================================================= */
+const rnd4 = v => String(Math.round(v * 10000) / 10000 + 0); // + 0 normalizes -0
+
+// r minus c, both {x0,y0,x1,y1} -> up to 4 rects
+function subtractRect(r, c){
+  const ix0 = Math.max(r.x0, c.x0), ix1 = Math.min(r.x1, c.x1);
+  const iy0 = Math.max(r.y0, c.y0), iy1 = Math.min(r.y1, c.y1);
+  if (ix1 - ix0 <= EPS || iy1 - iy0 <= EPS) return [r]; // no intersection
+  const out = [];
+  if (iy0 - r.y0 > EPS) out.push({x0:r.x0, y0:r.y0, x1:r.x1, y1:iy0});
+  if (r.y1 - iy1 > EPS) out.push({x0:r.x0, y0:iy1, x1:r.x1, y1:r.y1});
+  if (ix0 - r.x0 > EPS) out.push({x0:r.x0, y0:iy0, x1:ix0, y1:iy1});
+  if (r.x1 - ix1 > EPS) out.push({x0:ix1, y0:iy0, x1:r.x1, y1:iy1});
+  return out;
+}
+
+// local (pre-rotation) step boxes for a staircase; z relative to slab top, rise = FLOOR_H
+function stairLocalBoxes(st){
+  const t = STAIR_TYPES[st.type];
+  const out = []; // {lx0,ly0,lx1,ly1, dz0, dz1}  dz measured from slab top; dz0 = -FLOOR_T sinks to level base
+  if (st.type === 'uturn'){
+    const run = t.h - t.landing, N = 6;
+    const riser = (FLOOR_H / 2) / N, tread = run / N;
+    for (let i = 0; i < N; i++){ // up flight: right half, +y (bottom) toward the landing
+      out.push({lx0: 0, lx1: t.w/2, ly0: t.h/2 - (i+1)*tread, ly1: t.h/2 - i*tread,
+                dz0: -FLOOR_T, dz1: (i+1)*riser});
+    }
+    out.push({lx0: -t.w/2, lx1: t.w/2, ly0: -t.h/2, ly1: -t.h/2 + t.landing,
+              dz0: -FLOOR_T, dz1: FLOOR_H/2}); // landing
+    for (let i = 0; i < N; i++){ // return flight: left half, landing back toward +y
+      out.push({lx0: -t.w/2, lx1: 0, ly0: -t.h/2 + t.landing + i*tread, ly1: -t.h/2 + t.landing + (i+1)*tread,
+                dz0: -FLOOR_T, dz1: FLOOR_H/2 + (i+1)*riser});
+    }
+  } else { // straight & wide: one flight along the full length
+    const N = 12, riser = FLOOR_H / N, tread = t.h / N;
+    for (let i = 0; i < N; i++){
+      out.push({lx0: -t.w/2, lx1: t.w/2, ly0: t.h/2 - (i+1)*tread, ly1: t.h/2 - i*tread,
+                dz0: -FLOOR_T, dz1: (i+1)*riser});
+    }
+  }
+  return out;
+}
+function rotBox(b, st){ // rotate a local box by st.rot around the stair centre (90° multiples stay axis-aligned)
+  const a = st.rot * Math.PI / 180, ca = Math.round(Math.cos(a)), sa = Math.round(Math.sin(a));
+  const R = (x, y) => ({x: st.cx + x*ca - y*sa, y: st.cy + x*sa + y*ca});
+  const p = R(b.lx0, b.ly0), q = R(b.lx1, b.ly1);
+  return {x0: Math.min(p.x, q.x), y0: Math.min(p.y, q.y), x1: Math.max(p.x, q.x), y1: Math.max(p.y, q.y)};
+}
+
+function buildObjModel(){
+  const groups = []; // {name, boxes:[{x0,y0,x1,y1,z0,z1}], prisms:[{pts:[4],z0,z1}]}
+  const addGroup = name => { const g = {name: objName(name), boxes: [], prisms: []}; groups.push(g); return g; };
+  const objName = name => String(name || 'Room')
+    .replace(/[^A-Za-z0-9_\-]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'Room';
+
+  const roomHalfT = r => {
+    const own = walls.filter(w => w.roomId === r.id);
+    return (own.length && own.every(w => w.kind === 'interior') ? INT_T : WALL_T) / 2;
+  };
+  const roomSlabRect = r => {
+    // Floors/ceilings expand to the wall outside faces so they are flush with
+    // exported wall thickness again. Same-floor overlaps are subtracted below,
+    // so connected rooms do not keep duplicate slab strips on shared boundaries.
+    const bb = bbox(r.pts), ht = roomHalfT(r);
+    return {x0: bb.x0 - ht, y0: bb.y0 - ht, x1: bb.x1 + ht, y1: bb.y1 + ht};
+  };
+  const cutoutRectForRoom = (r, c) => {
+    // If a cutout is dragged all the way to a room wall, preserve a wall-thickness
+    // rim under that wall. This keeps upper and lower wall faces connected through
+    // the slab thickness instead of exposing a thin gap between floors.
+    const bb = bbox(r.pts), ht = roomHalfT(r), tol = 0.035;
+    let x0 = c.x, y0 = c.y, x1 = c.x + c.w, y1 = c.y + c.h;
+    if (x0 <= bb.x0 + tol) x0 = Math.min(x1, bb.x0 + ht);
+    if (x1 >= bb.x1 - tol) x1 = Math.max(x0, bb.x1 - ht);
+    if (y0 <= bb.y0 + tol) y0 = Math.min(y1, bb.y0 + ht);
+    if (y1 >= bb.y1 - tol) y1 = Math.max(y0, bb.y1 - ht);
+    return x1 - x0 > EPS && y1 - y0 > EPS ? {x0, y0, x1, y1} : null;
+  };
+  const roomCenter = r => ({
+    x: r.pts.reduce((sum,p)=>sum+p.x,0)/r.pts.length,
+    y: r.pts.reduce((sum,p)=>sum+p.y,0)/r.pts.length
+  });
+  const exteriorSlabFaceMat = (r, rc, face) => {
+    // Upper-floor slab edges that sit directly under exterior walls should read as
+    // wall continuation, not as a concrete band. Interior cutout edges stay concrete.
+    if (!r || r.fl <= 1) return defaultMats.edge;
+    const roomC = roomCenter(r);
+    for (const w of walls.filter(w => w.fl === r.fl && w.roomId === r.id && w.kind !== 'interior')){
+      const halfT = (w.kind === 'interior' ? INT_T : WALL_T) / 2;
+      const A = wallMiterAxisData(w, halfT);
+      if (!A) continue;
+      const shared = normalizeAxisIntervals(w, sharedBoundaryWalls(w).map(o => wallOverlapAxisInterval(w, o)).filter(Boolean));
+      if (A.axis === 'h' && (face === 'wy0' || face === 'wy1')){
+        const inward = Math.sign(roomC.y - A.coord) || 1;
+        const outCoord = A.coord - inward * halfT;
+        const faceCoord = face === 'wy0' ? rc.y0 : rc.y1;
+        if (Math.abs(faceCoord - outCoord) > 0.04) continue;
+        const ov0 = Math.max(rc.x0, A.lo), ov1 = Math.min(rc.x1, A.hi);
+        if (ov1 - ov0 <= 0.02) continue;
+        const midAxis = (ov0 + ov1) / 2;
+        if (shared.some(iv => axisCoordInInterval(midAxis, iv))) continue;
+        return wallMat(w, 'exteriorWall');
+      }
+      if (A.axis === 'v' && (face === 'wx0' || face === 'wx1')){
+        const inward = Math.sign(roomC.x - A.coord) || 1;
+        const outCoord = A.coord - inward * halfT;
+        const faceCoord = face === 'wx0' ? rc.x0 : rc.x1;
+        if (Math.abs(faceCoord - outCoord) > 0.04) continue;
+        const ov0 = Math.max(rc.y0, A.lo), ov1 = Math.min(rc.y1, A.hi);
+        if (ov1 - ov0 <= 0.02) continue;
+        const midAxis = (ov0 + ov1) / 2;
+        if (shared.some(iv => axisCoordInInterval(midAxis, iv))) continue;
+        return wallMat(w, 'exteriorWall');
+      }
+    }
+    return defaultMats.edge;
+  };
+  const addRectsAsSlabs = (g, rects, z0, z1, r, slabKind) => {
+    for (const rc of rects){
+      if (rc.x1 - rc.x0 <= EPS || rc.y1 - rc.y0 <= EPS) continue;
+      const mats = faceMats(defaultMats.edge);
+      if (slabKind === 'floor'){
+        mats.top = roomMat(r, 'floor');
+        mats.bottom = defaultMats.edge;
+        for (const f of ['wx0','wx1','wy0','wy1']) mats[f] = exteriorSlabFaceMat(r, rc, f);
+      } else {
+        mats.top = roomMat(r, 'roof');
+        mats.bottom = roomMat(r, 'ceiling');
+      }
+      g.boxes.push({...rc, z0, z1, kind: slabKind, mats});
+    }
+  };
+  const subtractMany = (rect, cutters) => {
+    let pieces = [rect];
+    for (const cut of cutters){
+      const next = [];
+      for (const p of pieces) next.push(...subtractRect(p, cut));
+      pieces = next;
+    }
+    return pieces;
+  };
+  const wallAxisData = w => {
+    const A = wallAxisInfo(w);
+    return A ? {axis: A.axis, coord: A.coord, lo: A.lo, hi: A.hi, rawLo: A.lo, rawHi: A.hi} : null;
+  };
+  const perpWallTouchesAxisCoord = (w, c) => {
+    const A = wallAxisInfo(w);
+    if (!A) return false;
+    return walls.some(o => {
+      if (o.fl !== w.fl || o.id === w.id) return false;
+      const B = wallAxisInfo(o);
+      if (!B || A.axis === B.axis) return false;
+      // Prefer same-room junctions, but also allow loose hand-drawn/interior
+      // walls to cap/trim against each other for blueprint tracing.
+      const sameRoom = roomOf(w) != null && roomOf(o) === roomOf(w);
+      const looseOrInterior = roomOf(w) == null || roomOf(o) == null || w.kind === 'interior' || o.kind === 'interior';
+      if (!sameRoom && !looseOrInterior) return false;
+      return Math.abs(B.coord - c) < 0.03 && A.coord >= B.lo - 0.03 && A.coord <= B.hi + 0.03;
+    });
+  };
+  const wallMiterAxisData = (w, halfT) => {
+    const A = wallAxisData(w);
+    if (!A) return A;
+    let lo = A.lo, hi = A.hi;
+    const touchLo = perpWallTouchesAxisCoord(w, A.lo);
+    const touchHi = perpWallTouchesAxisCoord(w, A.hi);
+    // Deterministic corner ownership: horizontal walls receive the small corner
+    // caps, vertical walls trim to them. Applying this to loose/interior walls
+    // fixes the interior divots without creating stacked corner boxes.
+    if (A.axis === 'h'){
+      if (touchLo) lo -= halfT;
+      if (touchHi) hi += halfT;
+    } else {
+      if (touchLo) lo += halfT;
+      if (touchHi) hi -= halfT;
+    }
+    if (hi - lo <= 0.05) return A;
+    return {...A, lo, hi, rawLo: A.rawLo, rawHi: A.rawHi};
+  };
+  const normalizeIntervalsToAxis = (A, intervals) => {
+    if (!A) return [];
+    const clipped = intervals
+      .map(iv => {
+        let lo = Math.min(iv.lo, iv.hi), hi = Math.max(iv.lo, iv.hi);
+        if (lo <= A.rawLo + 0.02) lo = A.lo;
+        if (hi >= A.rawHi - 0.02) hi = A.hi;
+        return {lo: Math.max(A.lo, lo), hi: Math.min(A.hi, hi)};
+      })
+      .filter(iv => iv.hi - iv.lo > 0.02)
+      .sort((a, b) => a.lo - b.lo);
+    const merged = [];
+    for (const iv of clipped){
+      const last = merged[merged.length - 1];
+      if (last && iv.lo <= last.hi + 0.02) last.hi = Math.max(last.hi, iv.hi);
+      else merged.push({...iv});
+    }
+    return merged;
+  };
+  const sharedWallExportPlan = w => {
+    const myRoom = roomOf(w);
+    if (myRoom == null) return {skip: [], shared: [], sourceWalls: [w]};
+    const sharedWalls = sharedBoundaryWalls(w).filter(o => roomOf(o) != null);
+    const skip = [], shared = [];
+    const sourceWalls = [w];
+    for (const o of sharedWalls){
+      const otherRoom = roomOf(o);
+      const iv = wallOverlapAxisInterval(w, o);
+      if (!iv) continue;
+      shared.push(iv);
+      // Lowest room id owns the shared span. The other room keeps any non-shared
+      // parts of a longer wall, but suppresses the duplicated boundary interval.
+      if (otherRoom < myRoom) skip.push(iv);
+      else if (myRoom < otherRoom) sourceWalls.push(o); // inherit doors/windows cut into the duplicate wall
+    }
+    return {skip: normalizeAxisIntervals(w, skip), shared: normalizeAxisIntervals(w, shared), sourceWalls};
+  };
+  const addDoorLeafPanel = (g, sw, hingeS, closedDir, side, leafW, zTop) => {
+    const H = ptAlong(sw, hingeS);
+    const n = nrm(sw);
+    const openDir = {x:n.x * side, y:n.y * side};
+    const vx = closedDir.x + openDir.x, vy = closedDir.y + openDir.y;
+    const vl = Math.hypot(vx, vy) || 1;
+    const along = {x:vx / vl, y:vy / vl}; // 45° between closed and fully-open blueprint swing
+    const perp = {x:-along.y * DOOR_PANEL_T/2, y:along.x * DOOR_PANEL_T/2};
+    const E = {x:H.x + along.x * leafW, y:H.y + along.y * leafW};
+    g.prisms.push({
+      pts: [
+        {x:H.x + perp.x, y:H.y + perp.y},
+        {x:H.x - perp.x, y:H.y - perp.y},
+        {x:E.x - perp.x, y:E.y - perp.y},
+        {x:E.x + perp.x, y:E.y + perp.y},
+      ],
+      z0: zTop, z1: zTop + DOOR_H - 0.05,
+      mat: defaultMats.door
+    });
+  };
+  const addDoorPanels = (g, sw, d, zTop) => {
+    const dw = doorWidth(d), u = dir(sw), s0 = d.s - dw/2, s1 = d.s + dw/2;
+    if ((d.type || 'single') === 'double'){
+      addDoorLeafPanel(g, sw, s0, u, d.side, dw/2, zTop);
+      addDoorLeafPanel(g, sw, s1, {x:-u.x, y:-u.y}, d.side, dw/2, zTop);
+    } else {
+      addDoorLeafPanel(g, sw, d.hinge > 0 ? s0 : s1, d.hinge > 0 ? u : {x:-u.x, y:-u.y}, d.side, dw, zTop);
+    }
+  };
+
+  const addWallToGroup = (g, w, zTop, zCeil, exportPlan = null) => {
+    const halfT = (w.kind === 'interior' ? INT_T : WALL_T) / 2;
+    const A = wallMiterAxisData(w, halfT);
+    if (!A) return;
+    const plan = exportPlan || {skip: [], shared: [], sourceWalls: [w]};
+    const skipIntervals = normalizeIntervalsToAxis(A, plan.skip || []);
+    const sharedIntervals = normalizeIntervalsToAxis(A, plan.shared || []);
+    const top = w.kind === 'interior' ? Math.min(zTop + HALF_H, zCeil) : zCeil;
+    const axisOf = p => A.axis === 'h' ? p.x : p.y;
+    const inSkip = c => skipIntervals.some(iv => axisCoordInInterval(c, iv));
+    const inShared = c => sharedIntervals.some(iv => axisCoordInInterval(c, iv));
+    const sourceWalls = plan.sourceWalls && plan.sourceWalls.length ? plan.sourceWalls : [w];
+    const openings = [];
+
+    for (const skip of skipIntervals) openings.push({...skip, z0: zTop, z1: top});
+
+    for (const sw of sourceWalls){
+      for (const d of doors.filter(d => d.wallId === sw.id)){
+        const dw = doorWidth(d);
+        const c = axisOf(ptAlong(sw, d.s));
+        if (c < A.lo - EPS || c > A.hi + EPS || inSkip(c)) continue;
+        openings.push({lo: c - dw/2, hi: c + dw/2, z0: zTop, z1: zTop + DOOR_H});
+        if (w.kind !== 'interior') addDoorPanels(g, sw, d, zTop);
+      }
+      if (w.kind !== 'interior'){
+        for (const sp of windowSpans(sw)){
+          const a = axisOf(ptAlong(sw, sp.s0)), b = axisOf(ptAlong(sw, sp.s1));
+          const c = (a + b) / 2;
+          if (c < A.lo - EPS || c > A.hi + EPS || inSkip(c)) continue;
+          const sill = sp.sill == null ? WIN_SILL : sp.sill;
+          const wh = sp.height == null ? WIN_H : sp.height;
+          openings.push({lo: Math.min(a, b), hi: Math.max(a, b), z0: zTop + sill, z1: zTop + sill + wh});
+        }
+      }
+    }
+
+    const cuts = new Set([A.lo, A.hi]);
+    for (const o of openings){
+      if (o.hi > A.lo + EPS && o.lo < A.hi - EPS){
+        cuts.add(Math.max(A.lo, o.lo));
+        cuts.add(Math.min(A.hi, o.hi));
+      }
+    }
+    const xs = [...cuts].sort((a, b) => a - b);
+    for (let i = 0; i < xs.length - 1; i++){
+      const a = xs[i], b = xs[i + 1];
+      if (b - a <= EPS) continue;
+      const mm = (a + b) / 2;
+      const holes = openings.filter(o => o.lo < mm && o.hi > mm)
+        .map(o => [Math.max(zTop, o.z0), Math.min(top, o.z1)])
+        .filter(([h0, h1]) => h1 > h0 + EPS)
+        .sort((p, q) => p[0] - q[0]);
+      let z = zTop;
+      const bands = [];
+      for (const [h0, h1] of holes){
+        if (h0 > z + EPS) bands.push([z, h0]);
+        z = Math.max(z, h1);
+      }
+      if (z < top - EPS) bands.push([z, top]);
+      for (const [z0, z1] of bands){
+        if (z1 - z0 <= EPS) continue;
+        const room = rooms.find(r => r.id === roomOf(w));
+        const roomC = room ? {x: room.pts.reduce((sum,p)=>sum+p.x,0)/room.pts.length, y: room.pts.reduce((sum,p)=>sum+p.y,0)/room.pts.length} : mid(w);
+        const vv = {x: roomC.x - mid(w).x, y: roomC.y - mid(w).y};
+        const segmentShared = roomOf(w) != null && inShared(mm);
+        const exteriorM = wallMat(w, 'exteriorWall');
+        const interiorM = wallMat(w, 'interiorWall');
+        const mats = faceMats(interiorM);
+        mats.top = interiorM; mats.bottom = defaultMats.edge;
+        if (!segmentShared && roomOf(w) != null && w.kind !== 'interior'){
+          // Only the true outside long face gets the exterior material. End caps
+          // and corner filler faces stay drywall so small interior slivers do not
+          // show brick/concrete at room junctions or beside exterior doors.
+          if (A.axis === 'h'){
+            const inward = Math.sign(roomC.y - A.coord) || 1;
+            mats[inward > 0 ? 'wy1' : 'wy0'] = interiorM;
+            mats[inward > 0 ? 'wy0' : 'wy1'] = exteriorM;
+            mats.wx0 = interiorM; mats.wx1 = interiorM;
+          } else {
+            const inward = Math.sign(roomC.x - A.coord) || 1;
+            mats[inward > 0 ? 'wx1' : 'wx0'] = interiorM;
+            mats[inward > 0 ? 'wx0' : 'wx1'] = exteriorM;
+            mats.wy0 = interiorM; mats.wy1 = interiorM;
+          }
+        }
+        g.boxes.push(A.axis === 'h'
+          ? {x0: a, x1: b, y0: A.coord - halfT, y1: A.coord + halfT, z0, z1, kind:'wall', wallId:w.id, mats}
+          : {x0: A.coord - halfT, x1: A.coord + halfT, y0: a, y1: b, z0, z1, kind:'wall', wallId:w.id, mats});
+      }
+    }
+  };
+
+  const addBaseTrimForWall = (g, w, z0, z1) => {
+    if (roomOf(w) == null || sharedBoundaryWalls(w).length) return;
+    const halfT = (w.kind === 'interior' ? INT_T : WALL_T) / 2;
+    const A = wallMiterAxisData(w, halfT);
+    if (!A) return;
+    const room = rooms.find(r => r.id === roomOf(w));
+    if (!room) return;
+    const roomC = {x: room.pts.reduce((sum,p)=>sum+p.x,0)/room.pts.length, y: room.pts.reduce((sum,p)=>sum+p.y,0)/room.pts.length};
+    const vv = {x: roomC.x - mid(w).x, y: roomC.y - mid(w).y};
+    const n = {x: vv.x, y: vv.y};
+    const nl = Math.hypot(n.x, n.y) || 1;
+    n.x /= nl; n.y /= nl; // points inward; trim projects outward
+    const proj = 0.035, mat = defaultMats.trim;
+    const mats = faceMats(mat);
+    if (A.axis === 'h'){
+      const outY = n.y > 0 ? A.coord - halfT - proj : A.coord + halfT;
+      const inY  = n.y > 0 ? A.coord - halfT : A.coord + halfT + proj;
+      g.boxes.push({x0:A.lo, x1:A.hi, y0:Math.min(outY,inY), y1:Math.max(outY,inY), z0, z1, kind:'trim', mats});
+    } else {
+      const outX = n.x > 0 ? A.coord - halfT - proj : A.coord + halfT;
+      const inX  = n.x > 0 ? A.coord - halfT : A.coord + halfT + proj;
+      g.boxes.push({x0:Math.min(outX,inX), x1:Math.max(outX,inX), y0:A.lo, y1:A.hi, z0, z1, kind:'trim', mats});
+    }
+  };
+
+  const expandedByFloor = {};
+  for (let fl = 1; fl <= nFloors; fl++){
+    expandedByFloor[fl] = rooms.filter(r => r.fl === fl).map(roomSlabRect);
+  }
+
+  for (let fl = 1; fl <= nFloors; fl++){
+    const zBase = (fl - 1) * FLOOR_H;      // bottom of this level's slab
+    const zTop = zBase + FLOOR_T;          // walking surface
+    const zCeil = zBase + FLOOR_H;         // = next level's zBase
+    const roomList = rooms.filter(r => r.fl === fl);
+    const roomGroups = new Map();
+
+    roomList.forEach((r, idx) => {
+      const g = addGroup('F' + fl + '_' + (r.name || ('Room ' + (idx + 1))));
+      roomGroups.set(r.id, g);
+      const fp = roomSlabRect(r);
+      const sameFloorOwned = roomList.filter(o => o.id < r.id).map(roomSlabRect).filter(c => boxOverlap(fp, c, 0));
+      const cuts = cutouts.filter(c => c.fl === fl)
+        .map(c => cutoutRectForRoom(r, c))
+        .filter(c => c && boxOverlap(fp, c, 0));
+      // Shared floor/ceiling footprints are owned by one room only if they truly overlap;
+      // edge-touching rooms now merely touch, so there are no shared-edge slab beams.
+      addRectsAsSlabs(g, subtractMany(fp, [...cuts, ...sameFloorOwned]), zBase, zTop, r, 'floor');
+
+      // If an upper-floor slab exists here, that slab is already the ceiling;
+      // otherwise this room gets its own roof/ceiling piece. Same-floor shared
+      // footprints are still deduped so connected rooms do not overlap at ceiling level.
+      addRectsAsSlabs(g, subtractMany(fp, [...(expandedByFloor[fl + 1] || []), ...sameFloorOwned]), zCeil, zCeil + FLOOR_T, r, 'ceiling');
+
+      for (const w of walls.filter(w => w.fl === fl && w.roomId === r.id)) addWallToGroup(g, w, zTop, zCeil, sharedWallExportPlan(w));
+    });
+
+    // Stairs become part of the room they sit in, so each room imports as one selectable model.
+    for (const st of stairs.filter(s => s.fl === fl)){
+      const owner = roomList.find(r => pointInPoly({x: st.cx, y: st.cy}, r.pts));
+      const g = owner ? roomGroups.get(owner.id) : addGroup('F' + fl + '_Loose_Stair_' + st.type + '_' + st.id);
+      for (const lb of stairLocalBoxes(st)){
+        const r = rotBox(lb, st);
+        g.boxes.push({...r, z0: zTop + lb.dz0, z1: zTop + lb.dz1, kind:'stair', mats: faceMats(defaultMats.stair)});
+      }
+    }
+
+    // Rectangular support pillars: assign to the room they sit in/touch; otherwise keep loose.
+    for (const p of pillars.filter(p => p.fl === fl)){
+      const owner = roomList.find(r => roomContainsOrTouchesPoint(r, {x:p.cx, y:p.cy}));
+      const g = owner ? roomGroups.get(owner.id) : addGroup('F' + fl + '_Loose_Pillar_' + p.id);
+      const r = pillarRect(p);
+      g.boxes.push({...r, z0: zTop, z1: zCeil + FLOOR_T, kind:'pillar', mats: faceMats(defaultMats.pillar)});
+    }
+
+    // Keep any hand-drawn freestanding walls exportable too, without folding them into room objects.
+    const looseWalls = walls.filter(w => w.fl === fl && roomOf(w) === null);
+    if (looseWalls.length){
+      const g = addGroup('F' + fl + '_Loose_Walls');
+      for (const w of looseWalls) addWallToGroup(g, w, zTop, zCeil);
+    }
+  }
+  return groups.filter(g => g.boxes.length || g.prisms.length);
+}
+
+
+function downloadTextFile(filename, text, type = 'text/plain'){
+  const blob = new Blob([text], {type});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function buildBlenderPBRScript(){
+  return "# Blueprint PBR ZIP helper for Blender\n# Version 0.3.10\n#\n# Workflow:\n# 1) Import blueprint.obj into Blender.\n# 2) Save the .blend file in your project folder.\n# 3) Put full PBR ZIP files from ambientCG/etc. into a folder named pbr_zips next to the .blend.\n# 4) In Blender: Scripting > Open this file > Run Script.\n#\n# The script extracts the needed maps into textures_pbr_extracted/ and wires\n# BaseColor, Roughness, Metallic, Normal, Height/Bump, and optional AO.\n\nimport os\nimport re\nimport zipfile\nfrom pathlib import Path\n\nimport bpy\n\nPBR_ZIP_FOLDER_NAME = \"pbr_zips\"\nEXTRACT_FOLDER_NAME = \"textures_pbr_extracted\"\nTILE_SCALE_METERS = 1.0\n\n# Blueprint material slot -> expected asset id in the downloaded PBR zip filename/path.\n# Reused assets are intentional: the same Concrete023 zip can drive several materials.\nMATERIAL_ASSETS = {\n    \"Exterior_Brick\": \"Bricks038\",\n    \"Exterior_Stylized_Concrete\": \"Concrete023\",\n    \"Interior_Drywall_Warm\": \"PaintedPlaster003\",\n    \"Interior_Drywall_White\": \"PaintedPlaster003\",\n    \"Interior_Drywall_BlueGray\": \"PaintedPlaster003\",\n    \"Interior_Brick\": \"Bricks023\",\n    \"Interior_Plain_Concrete\": \"Concrete023\",\n    \"Interior_Wallpaper_Muted\": \"Fabric022\",\n    \"Interior_Marble\": \"Marble012\",\n    \"Ceiling_Tiles\": \"OfficeCeiling001\",\n    \"Floor_Wood_Dark\": \"WoodFloor040\",\n    \"Floor_Carpet_Charcoal\": \"Carpet012\",\n    \"Floor_Carpet_Brown\": \"Carpet012\",\n    \"Floor_Carpet_BlueGray\": \"Carpet012\",\n    \"Floor_Tile_Slate\": \"Tiles027\",\n    \"Floor_Marble_Gray\": \"Marble001\",\n    \"Floor_Concrete\": \"Concrete040\",\n    \"Roof_Concrete\": \"Concrete023\",\n    \"Pillar_Concrete\": \"Concrete023\",\n    \"Stair_Concrete\": \"Concrete023\",\n    \"Cut_Edge_Concrete\": \"Concrete023\",\n}\n\n# Some simple color tints keep the reused drywall/carpet maps visually distinct.\nMATERIAL_TINTS = {\n    \"Interior_Drywall_Warm\": (1.00, 0.96, 0.86, 1.0),\n    \"Interior_Drywall_White\": (1.00, 1.00, 0.96, 1.0),\n    \"Interior_Drywall_BlueGray\": (0.68, 0.76, 0.82, 1.0),\n    \"Floor_Carpet_Charcoal\": (0.45, 0.45, 0.45, 1.0),\n    \"Floor_Carpet_Brown\": (0.55, 0.42, 0.32, 1.0),\n    \"Floor_Carpet_BlueGray\": (0.45, 0.55, 0.62, 1.0),\n}\n\nIMAGE_EXTS = {\".jpg\", \".jpeg\", \".png\", \".tif\", \".tiff\", \".exr\"}\n\n\ndef project_dir() -> Path:\n    if bpy.data.filepath:\n        return Path(bpy.data.filepath).resolve().parent\n    return Path.cwd()\n\n\ndef clean_name(name: str) -> str:\n    return re.sub(r\"[^a-z0-9]+\", \"\", name.lower())\n\n\ndef find_zip_files(root: Path):\n    folders = []\n    preferred = root / PBR_ZIP_FOLDER_NAME\n    if preferred.exists():\n        folders.append(preferred)\n    folders.append(root)\n    found = []\n    seen = set()\n    for folder in folders:\n        for path in folder.glob(\"*.zip\"):\n            if path.resolve() not in seen:\n                found.append(path)\n                seen.add(path.resolve())\n    return found\n\n\ndef classify_map(filename: str):\n    lower = filename.lower()\n    stem = Path(lower).stem\n    if Path(lower).suffix not in IMAGE_EXTS:\n        return None\n    # Prefer OpenGL normal maps for Blender. DX normal maps need a green-channel flip.\n    if \"normalgl\" in lower or \"normal_gl\" in lower or \"opengl\" in lower:\n        return \"normal_gl\"\n    if \"normaldx\" in lower or \"normal_dx\" in lower or \"directx\" in lower:\n        return \"normal_dx\"\n    if \"normal\" in lower or stem.endswith(\"_nor\") or stem.endswith(\"-nor\"):\n        return \"normal\"\n    if \"roughness\" in lower or stem.endswith(\"_rough\") or stem.endswith(\"-rough\"):\n        return \"roughness\"\n    if \"metallic\" in lower or \"metalness\" in lower:\n        return \"metallic\"\n    if \"ambientocclusion\" in lower or \"ambient_occlusion\" in lower or re.search(r\"(^|[_\\-])ao($|[_\\-])\", stem):\n        return \"ao\"\n    if \"displacement\" in lower or \"height\" in lower or stem.endswith(\"_disp\") or stem.endswith(\"-disp\"):\n        return \"height\"\n    if (\n        \"basecolor\" in lower or \"base_color\" in lower or \"albedo\" in lower or\n        \"diffuse\" in lower or re.search(r\"(^|[_\\-])color($|[_\\-])\", stem) or stem.endswith(\"_col\") or stem.endswith(\"-col\")\n    ):\n        return \"basecolor\"\n    return None\n\n\ndef choose_asset_zip(asset_id: str, zips):\n    target = clean_name(asset_id)\n    best = None\n    best_score = -1\n    for z in zips:\n        name_score = 10 if target in clean_name(z.name) else 0\n        path_score = 0\n        try:\n            with zipfile.ZipFile(z) as zf:\n                sample = \" \".join(zf.namelist()[:80])\n                if target in clean_name(sample):\n                    path_score = 8\n        except Exception:\n            continue\n        score = name_score + path_score\n        if score > best_score:\n            best = z\n            best_score = score\n    return best if best_score > 0 else None\n\n\ndef extract_maps(zip_path: Path, asset_id: str, dest_root: Path, material_name: str):\n    dest = dest_root / material_name\n    dest.mkdir(parents=True, exist_ok=True)\n    maps = {}\n    target = clean_name(asset_id)\n    with zipfile.ZipFile(zip_path) as zf:\n        for info in zf.infolist():\n            if info.is_dir():\n                continue\n            name = info.filename\n            if Path(name).suffix.lower() not in IMAGE_EXTS:\n                continue\n            # Prefer files that include the intended asset id, but allow zips with a single asset folder.\n            if target not in clean_name(name) and target not in clean_name(zip_path.name):\n                continue\n            map_type = classify_map(name)\n            if not map_type:\n                continue\n            # For normal maps, prefer NormalGL over generic over NormalDX.\n            if map_type in {\"normal_gl\", \"normal\", \"normal_dx\"}:\n                existing = maps.get(\"normal\")\n                priority = {\"normal_gl\": 3, \"normal\": 2, \"normal_dx\": 1}[map_type]\n                if existing and existing[1] >= priority:\n                    continue\n                out_path = dest / Path(name).name\n                with zf.open(info) as src, open(out_path, \"wb\") as out:\n                    out.write(src.read())\n                maps[\"normal\"] = (out_path, priority)\n                continue\n            if map_type in maps:\n                # Keep first useful map of each type.\n                continue\n            out_path = dest / Path(name).name\n            with zf.open(info) as src, open(out_path, \"wb\") as out:\n                out.write(src.read())\n            maps[map_type] = out_path\n    if isinstance(maps.get(\"normal\"), tuple):\n        maps[\"normal\"] = maps[\"normal\"][0]\n    return maps\n\n\ndef load_image(path: Path, color_space=\"sRGB\"):\n    img = bpy.data.images.load(str(path), check_existing=True)\n    # Blender color management values differ by version. Try common ones.\n    try:\n        img.colorspace_settings.name = color_space\n    except Exception:\n        if color_space == \"Non-Color\":\n            try:\n                img.colorspace_settings.name = \"Non-Color Data\"\n            except Exception:\n                pass\n    return img\n\n\ndef input_socket(node, *names):\n    for name in names:\n        sock = node.inputs.get(name)\n        if sock:\n            return sock\n    return None\n\n\ndef output_socket(node, *names):\n    for name in names:\n        sock = node.outputs.get(name)\n        if sock:\n            return sock\n    return None\n\n\ndef make_tex_node(nodes, path: Path, label: str, color_space=\"sRGB\", x=-700, y=0):\n    node = nodes.new(type=\"ShaderNodeTexImage\")\n    node.label = label\n    node.location = (x, y)\n    node.image = load_image(path, color_space)\n    return node\n\n\ndef rebuild_material(mat, maps, tint=None):\n    mat.use_nodes = True\n    nodes = mat.node_tree.nodes\n    links = mat.node_tree.links\n    nodes.clear()\n\n    out = nodes.new(type=\"ShaderNodeOutputMaterial\")\n    out.location = (350, 0)\n    bsdf = nodes.new(type=\"ShaderNodeBsdfPrincipled\")\n    bsdf.location = (80, 0)\n    links.new(output_socket(bsdf, \"BSDF\"), input_socket(out, \"Surface\"))\n\n    base_socket = input_socket(bsdf, \"Base Color\")\n    rough_socket = input_socket(bsdf, \"Roughness\")\n    metal_socket = input_socket(bsdf, \"Metallic\")\n    normal_socket = input_socket(bsdf, \"Normal\")\n\n    if rough_socket:\n        rough_socket.default_value = 0.85\n    if metal_socket:\n        metal_socket.default_value = 0.0\n\n    base_node = None\n    if maps.get(\"basecolor\") and base_socket:\n        base_node = make_tex_node(nodes, maps[\"basecolor\"], \"BaseColor / Albedo\", \"sRGB\", -760, 180)\n        source_color = output_socket(base_node, \"Color\")\n        if tint:\n            try:\n                tint_node = nodes.new(type=\"ShaderNodeMixRGB\")\n                tint_node.location = (-420, 160)\n                tint_node.blend_type = \"MULTIPLY\"\n                tint_node.inputs[0].default_value = 0.45\n                tint_node.inputs[2].default_value = tint\n                links.new(source_color, tint_node.inputs[1])\n                links.new(tint_node.outputs[0], base_socket)\n            except Exception:\n                links.new(source_color, base_socket)\n        else:\n            links.new(source_color, base_socket)\n\n    if maps.get(\"ao\") and base_node and base_socket:\n        try:\n            ao_node = make_tex_node(nodes, maps[\"ao\"], \"Ambient Occlusion\", \"Non-Color\", -760, 0)\n            mix = nodes.new(type=\"ShaderNodeMixRGB\")\n            mix.location = (-190, 120)\n            mix.blend_type = \"MULTIPLY\"\n            mix.inputs[0].default_value = 0.35\n            # Rewire whatever is currently feeding Base Color into the multiply node.\n            existing = None\n            for link in list(links):\n                if link.to_socket == base_socket:\n                    existing = link.from_socket\n                    links.remove(link)\n                    break\n            if existing:\n                links.new(existing, mix.inputs[1])\n            else:\n                mix.inputs[1].default_value = (1, 1, 1, 1)\n            links.new(output_socket(ao_node, \"Color\"), mix.inputs[2])\n            links.new(mix.outputs[0], base_socket)\n        except Exception:\n            pass\n\n    if maps.get(\"roughness\") and rough_socket:\n        rough_node = make_tex_node(nodes, maps[\"roughness\"], \"Roughness\", \"Non-Color\", -760, -160)\n        links.new(output_socket(rough_node, \"Color\"), rough_socket)\n\n    if maps.get(\"metallic\") and metal_socket:\n        metal_node = make_tex_node(nodes, maps[\"metallic\"], \"Metallic\", \"Non-Color\", -760, -320)\n        links.new(output_socket(metal_node, \"Color\"), metal_socket)\n\n    normal_output = None\n    if maps.get(\"normal\"):\n        normal_tex = make_tex_node(nodes, maps[\"normal\"], \"Normal\", \"Non-Color\", -760, -500)\n        normal_map = nodes.new(type=\"ShaderNodeNormalMap\")\n        normal_map.location = (-420, -500)\n        try:\n            normal_map.inputs[\"Strength\"].default_value = 0.85\n        except Exception:\n            pass\n        links.new(output_socket(normal_tex, \"Color\"), input_socket(normal_map, \"Color\"))\n        normal_output = output_socket(normal_map, \"Normal\")\n\n    if maps.get(\"height\"):\n        try:\n            height_tex = make_tex_node(nodes, maps[\"height\"], \"Height / Displacement as Bump\", \"Non-Color\", -760, -680)\n            bump = nodes.new(type=\"ShaderNodeBump\")\n            bump.location = (-180, -560)\n            if input_socket(bump, \"Strength\"):\n                input_socket(bump, \"Strength\").default_value = 0.05\n            if input_socket(bump, \"Distance\"):\n                input_socket(bump, \"Distance\").default_value = 0.06\n            links.new(output_socket(height_tex, \"Color\"), input_socket(bump, \"Height\"))\n            if normal_output and input_socket(bump, \"Normal\"):\n                links.new(normal_output, input_socket(bump, \"Normal\"))\n            normal_output = output_socket(bump, \"Normal\")\n        except Exception:\n            pass\n\n    if normal_output and normal_socket:\n        links.new(normal_output, normal_socket)\n\n\ndef main():\n    root = project_dir()\n    zips = find_zip_files(root)\n    if not zips:\n        raise RuntimeError(f\"No ZIP files found. Put full PBR texture ZIPs in {root / PBR_ZIP_FOLDER_NAME} or next to the .blend file.\")\n\n    extract_root = root / EXTRACT_FOLDER_NAME\n    extract_root.mkdir(parents=True, exist_ok=True)\n    applied = []\n    missing_materials = []\n    missing_zips = []\n    missing_maps = []\n\n    for mat_name, asset_id in MATERIAL_ASSETS.items():\n        mat = bpy.data.materials.get(mat_name)\n        if mat is None:\n            missing_materials.append(mat_name)\n            continue\n        zip_path = choose_asset_zip(asset_id, zips)\n        if not zip_path:\n            missing_zips.append(f\"{mat_name} -> {asset_id}\")\n            continue\n        maps = extract_maps(zip_path, asset_id, extract_root, mat_name)\n        if not maps.get(\"basecolor\"):\n            missing_maps.append(f\"{mat_name}: no base color found in {zip_path.name}\")\n            continue\n        rebuild_material(mat, maps, MATERIAL_TINTS.get(mat_name))\n        applied.append(f\"{mat_name} <- {zip_path.name} ({', '.join(sorted(maps.keys()))})\")\n\n    print(\"\\n=== Blueprint PBR ZIP Helper ===\")\n    print(f\"Project folder: {root}\")\n    print(f\"ZIP files scanned: {len(zips)}\")\n    print(f\"Materials updated: {len(applied)}\")\n    for item in applied:\n        print(\"  OK\", item)\n    if missing_zips:\n        print(\"\\nMissing ZIPs:\")\n        for item in missing_zips:\n            print(\"  \", item)\n    if missing_maps:\n        print(\"\\nMissing maps:\")\n        for item in missing_maps:\n            print(\"  \", item)\n    if missing_materials:\n        print(\"\\nBlueprint materials not present in this Blender file:\")\n        for item in missing_materials:\n            print(\"  \", item)\n    print(\"\\nDone. Switch to Material Preview or Rendered view to inspect the PBR materials.\")\n\n\nif __name__ == \"__main__\":\n    main()\n";
+}
+function buildPBRZipReadme(){
+  return "Blueprint full-PBR ZIP workflow\nVersion 0.3.10\n\nThis is for the full ambientCG-style texture ZIPs that contain BaseColor/Color, Roughness, NormalGL/NormalDX, Displacement/Height, AO, etc.\n\nFolder layout:\n\nproject-folder/\n  your_building.blend\n  blueprint.obj\n  blueprint.mtl\n  pbr_zips/\n    Bricks038_1K-JPG.zip\n    Concrete023_1K-JPG.zip\n    PaintedPlaster003_1K-JPG.zip\n    Carpet012_1K-JPG.zip\n    ...\n  blueprint_apply_pbr_from_zips.py\n\nSteps:\n1. Export OBJ from the blueprint tool.\n2. Import blueprint.obj into Blender.\n3. Save the Blender file in your project folder.\n4. Put the full downloaded PBR ZIPs in a folder named pbr_zips next to the .blend file.\n5. In Blender, open the Scripting tab.\n6. Open blueprint_apply_pbr_from_zips.py and Run Script.\n7. Switch to Material Preview or Rendered view.\n\nThe script extracts the image maps into textures_pbr_extracted/ and wires Blender materials automatically.\nIt uses BaseColor, Roughness, Metallic when present, NormalGL/Normal, Height as Bump, and optional Ambient Occlusion.\nNormalGL/OpenGL normal maps are preferred for Blender. If only NormalDX is present, the script can still use it, but lighting may look slightly inverted.\n\nDo not drag the ZIPs or JPGs into the Blender collection. The script connects the images to material nodes.\n";
+}
+function exportPBRHelper(){
+  downloadTextFile('blueprint_apply_pbr_from_zips.py', buildBlenderPBRScript(), 'text/x-python');
+  downloadTextFile('blueprint_pbr_zip_readme.txt', buildPBRZipReadme(), 'text/plain');
+  warn('Downloaded Blender PBR ZIP helper. Put full texture zips in a pbr_zips folder next to your saved .blend, then run the script in Blender.');
+}
+
+function buildMTL(){
+  const lines = ['# Blueprint material library — ready for local texture testing.'];
+  lines.push('# Keep blueprint.obj, blueprint.mtl, and the textures/ folder in the SAME folder.');
+  lines.push('# The map_Kd lines below are already active; no manual uncommenting is needed.');
+  for (const [name, m] of Object.entries(MATERIALS)){
+    const kd = m.kd || [0.5,0.5,0.5];
+    const alpha = m.alpha == null ? 1 : m.alpha;
+    const tex = TEXTURE_SOURCES[name];
+    lines.push('');
+    if (tex) lines.push('# ' + tex.source + ' asset: ' + tex.asset + ' — ' + tex.url);
+    lines.push('newmtl ' + name,
+      'Ka ' + kd.map(rnd4).join(' '),
+      'Kd ' + kd.map(rnd4).join(' '),
+      'Ks ' + (m.rough && m.rough > 0.8 ? '0.02 0.02 0.02' : '0.12 0.12 0.12'),
+      'Ns ' + rnd4(20 + (1 - (m.rough || 0.7)) * 120),
+      'd ' + rnd4(alpha),
+      'illum ' + (alpha < 1 ? 4 : 2));
+    if (tex && alpha >= 1) lines.push('map_Kd textures/' + tex.file);
+  }
+  return lines.join('\n');
+}
+function buildTextureManifest(){
+  const lines = [
+    'Blueprint texture manifest (prototype)',
+    'The exported blueprint.mtl already contains active map_Kd texture links. No uncommenting is needed.',
+    'Put the textures folder next to blueprint.obj and blueprint.mtl before importing blueprint.obj into Blender.',
+    'UV mapping: 1 texture tile per meter. Vertical walls use horizontal meters × height; floors/ceilings use plan X/Y meters.',
+    'For full PBR maps, use the PBR ZIPs button to download the Blender helper script.',
+    ''
+  ];
+  const seen = new Set();
+  for (const [mat, tex] of Object.entries(TEXTURE_SOURCES)){
+    const key = tex.asset + '|' + tex.file;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push(mat + ' -> ' + tex.source + ' ' + tex.asset,
+      '  URL: ' + tex.url,
+      '  Save base color/diffuse/albedo as: textures/' + tex.file,
+      '');
+  }
+  return lines.join('\n');
+}
+
+function exportOBJ(){
+  const groups = buildObjModel();
+  if (!groups.length){ warn('Nothing to export yet — draw some rooms first.'); return; }
+  const out = [
+    '# Blueprint — Smart Building Sketch, prototype 0.3.10',
+    '# Wavefront OBJ export · units: meters · Y is up (plan x -> -X, plan y -> -Z)',
+    '# floors: ' + nFloors + ' · floor height ' + FLOOR_H + ' m · slab ' + FLOOR_T + ' m · half walls ' + HALF_H + ' m',
+    '# Each room is emitted as its own OBJ object: F1_Room_1, F1_Room_2, etc.',
+    '# Shared room-to-room walls are emitted once; wall editing is permissive for tracing real plans.',
+    '# Wall ends/junctions are capped/trimmed for flush interior and exterior corners.',
+    '# Doors are exported as 45-degree open panels; pillars export as full-height supports.',
+    '# Materials are exported to blueprint.mtl; keep the .obj and .mtl in the same folder.',
+    '# UVs are procedural and use 1 texture tile per meter for wall/floor alignment tests.',
+    '# Exact hidden coplanar faces between touching boxes are culled during export.',
+    'mtllib blueprint.mtl',
+    ''
+  ];
+  // six shared axis normals: 1 -Z, 2 +Z, 3 -Y, 4 +X, 5 +Y, 6 -X
+  out.push('vn 0 0 -1', 'vn 0 0 1', 'vn 0 -1 0', 'vn 1 0 0', 'vn 0 1 0', 'vn -1 0 0', '');
+  let vBase = 0, vtBase = 0, curMat = null;
+  const allBoxes = groups.flatMap(g => g.boxes || []);
+  const keyNum = v => rnd4(v);
+  const faceKey = (b, face) => {
+    if (face === 'wx0' || face === 'wx1') return `x|${keyNum(face === 'wx0' ? b.x0 : b.x1)}|${keyNum(b.y0)}|${keyNum(b.y1)}|${keyNum(b.z0)}|${keyNum(b.z1)}`;
+    if (face === 'wy0' || face === 'wy1') return `y|${keyNum(face === 'wy0' ? b.y0 : b.y1)}|${keyNum(b.x0)}|${keyNum(b.x1)}|${keyNum(b.z0)}|${keyNum(b.z1)}`;
+    return `z|${keyNum(face === 'bottom' ? b.z0 : b.z1)}|${keyNum(b.x0)}|${keyNum(b.x1)}|${keyNum(b.y0)}|${keyNum(b.y1)}`;
+  };
+  const oppositeFace = f => ({wx0:'wx1', wx1:'wx0', wy0:'wy1', wy1:'wy0', bottom:'top', top:'bottom'})[f];
+  const faceCounts = new Map();
+  for (const b of allBoxes){
+    for (const f of ['wy1','wy0','bottom','wx0','top','wx1']){
+      const k = f + '|' + faceKey(b, f);
+      faceCounts.set(k, (faceCounts.get(k) || 0) + 1);
+    }
+  }
+  const hiddenFace = (b, f) => (faceCounts.get(oppositeFace(f) + '|' + faceKey(b, f)) || 0) > 0;
+  const useMat = mat => {
+    mat = matName(mat);
+    if (curMat !== mat){ out.push('usemtl ' + mat); curMat = mat; }
+  };
+  const emitFace = (mat, line) => { useMat(mat); out.push(line); };
+  const emitBox = b => {
+    // plan(x,y)+height(z) -> obj(X=-x, Y=z, Z=-y).
+    // Negating X fixes Blender's left/right mirror while keeping top-view depth consistent.
+    const X0 = -b.x1, X1 = -b.x0, Y0 = b.z0, Y1 = b.z1, Z0 = -b.y1, Z1 = -b.y0;
+    out.push(
+      `v ${rnd4(X0)} ${rnd4(Y0)} ${rnd4(Z0)}`, `v ${rnd4(X1)} ${rnd4(Y0)} ${rnd4(Z0)}`,
+      `v ${rnd4(X1)} ${rnd4(Y1)} ${rnd4(Z0)}`, `v ${rnd4(X0)} ${rnd4(Y1)} ${rnd4(Z0)}`,
+      `v ${rnd4(X0)} ${rnd4(Y0)} ${rnd4(Z1)}`, `v ${rnd4(X1)} ${rnd4(Y0)} ${rnd4(Z1)}`,
+      `v ${rnd4(X1)} ${rnd4(Y1)} ${rnd4(Z1)}`, `v ${rnd4(X0)} ${rnd4(Y1)} ${rnd4(Z1)}`
+    );
+    const i = n => vBase + n, m = b.mats || faceMats('Interior_Plain_Concrete');
+    const uv = (u, v) => [u / UV_METERS_PER_TILE, v / UV_METERS_PER_TILE];
+    const faceUVs = face => {
+      if (face === 'wy1') return [uv(b.x1,b.z0), uv(b.x1,b.z1), uv(b.x0,b.z1), uv(b.x0,b.z0)];
+      if (face === 'wy0') return [uv(b.x1,b.z0), uv(b.x0,b.z0), uv(b.x0,b.z1), uv(b.x1,b.z1)];
+      if (face === 'wx0') return [uv(b.y1,b.z0), uv(b.y1,b.z1), uv(b.y0,b.z1), uv(b.y0,b.z0)];
+      if (face === 'wx1') return [uv(b.y1,b.z0), uv(b.y0,b.z0), uv(b.y0,b.z1), uv(b.y1,b.z1)];
+      if (face === 'top') return [uv(b.x0,b.y1), uv(b.x1,b.y1), uv(b.x1,b.y0), uv(b.x0,b.y0)];
+      return [uv(b.x1,b.y1), uv(b.x0,b.y1), uv(b.x0,b.y0), uv(b.x1,b.y0)];
+    };
+    const fLine = (verts, nIdx, uvs) => {
+      const start = vtBase + 1;
+      for (const t of uvs) out.push(`vt ${rnd4(t[0])} ${rnd4(t[1])}`);
+      vtBase += uvs.length;
+      return 'f ' + verts.map((vi, idx) => `${i(vi)}/${start + idx}/${nIdx}`).join(' ');
+    };
+    if (!hiddenFace(b, 'wy1')) emitFace(m.wy1, fLine([1,4,3,2], 1, faceUVs('wy1')));
+    if (!hiddenFace(b, 'wy0')) emitFace(m.wy0, fLine([5,6,7,8], 2, faceUVs('wy0')));
+    if (!hiddenFace(b, 'bottom')) emitFace(m.bottom, fLine([1,2,6,5], 3, faceUVs('bottom')));
+    if (!hiddenFace(b, 'wx0')) emitFace(m.wx0, fLine([2,3,7,6], 4, faceUVs('wx0')));
+    if (!hiddenFace(b, 'top')) emitFace(m.top, fLine([3,4,8,7], 5, faceUVs('top')));
+    if (!hiddenFace(b, 'wx1')) emitFace(m.wx1, fLine([1,5,8,4], 6, faceUVs('wx1')));
+    vBase += 8;
+  };
+  const emitPrism = pr => {
+    for (const p of pr.pts) out.push(`v ${rnd4(-p.x)} ${rnd4(pr.z0)} ${rnd4(-p.y)}`);
+    for (const p of pr.pts) out.push(`v ${rnd4(-p.x)} ${rnd4(pr.z1)} ${rnd4(-p.y)}`);
+    const i = n => vBase + n;
+    useMat(pr.mat || defaultMats.door);
+    out.push(
+      `f ${i(1)} ${i(2)} ${i(3)} ${i(4)}`,
+      `f ${i(5)} ${i(8)} ${i(7)} ${i(6)}`,
+      `f ${i(1)} ${i(5)} ${i(6)} ${i(2)}`,
+      `f ${i(2)} ${i(6)} ${i(7)} ${i(3)}`,
+      `f ${i(3)} ${i(7)} ${i(8)} ${i(4)}`,
+      `f ${i(4)} ${i(8)} ${i(5)} ${i(1)}`
+    );
+    vBase += 8;
+  };
+  for (const g of groups){
+    out.push('', 'o ' + g.name, 'g ' + g.name);
+    for (const b of g.boxes) emitBox(b);
+    for (const pr of (g.prisms || [])) emitPrism(pr);
+  }
+  const blob = new Blob([out.join('\n') + '\n'], {type: 'model/obj'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'blueprint.obj'; a.click();
+  URL.revokeObjectURL(a.href);
+  const mtlBlob = new Blob([buildMTL() + '\n'], {type: 'model/mtl'});
+  const m = document.createElement('a');
+  m.href = URL.createObjectURL(mtlBlob); m.download = 'blueprint.mtl'; m.click();
+  URL.revokeObjectURL(m.href);
+}
+document.getElementById('btnObj').addEventListener('click', exportOBJ);
+document.getElementById('btnPbr').addEventListener('click', exportPBRHelper);
+
+/* ---------------- toolbar & floors ---------------- */
+const TIPS = {
+  wall: '<b>Wall:</b> drag to draw; overlaps are allowed for tracing · hover a wall and <b>Shift+drag the red handle</b> to pull out a room',
+  interior: '<b>Half wall:</b> thin and waist-high (1 m) in 3D — for rails, counters, loft edges · Shift+drag the red handle extrudes a half-walled room',
+  select: '<b>Select:</b> drag a wall to push it · drag an endpoint to lengthen · <b>Windows</b> toggles exterior-only windows and type buttons choose size · Del deletes',
+  door: '<b>Door:</b> choose single/double, hover a wall, click to place · <b>R</b> flips swing · <b>F</b> flips hinge · 3D exports half-open at 45°',
+  stairs: '<b>Stairs:</b> pick a type, click to place · <b>R</b> rotates 90°',
+  cutout: '<b>Cutout:</b> drag a rectangle to open the floor · or just <b>click a ghosted staircase below</b> to cut its exact footprint',
+  pillar: '<b>Pillar:</b> click grid intersections to place rectangular full-height support pillars · erase removes individual pillars',
+  erase: '<b>Erase:</b> click a door/stair/cutout to remove just it · click a wall to remove that exact segment · exact duplicate shared walls open together · click a room floor to wipe the room + contents',
+};
+const stairTypesEl = document.getElementById('stairTypes');
+const doorTypesEl = document.getElementById('doorTypes');
+const windowTypesEl = document.getElementById('windowTypes');
+function setTool(t){
+  tool = t; sel = (t === 'select') ? sel : null; ghost = null; stairGhost = null; pillarGhost = null;
+  document.querySelectorAll('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+  stairTypesEl.classList.toggle('show', t === 'stairs');
+  doorTypesEl.classList.toggle('show', t === 'door');
+  cv.className = 'tool-' + t;
+  tipEl.classList.remove('warn');
+  tipEl.innerHTML = TIPS[t];
+  syncButtons(); draw();
+}
+document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+document.querySelectorAll('.st').forEach(b => b.addEventListener('click', () => {
+  stairType = b.dataset.st;
+  document.querySelectorAll('.st').forEach(x => x.classList.toggle('active', x === b));
+  if (stairGhost) stairGhost.type = stairType;
+  draw();
+}));
+document.querySelector('.st[data-st="straight"]').classList.add('active');
+
+document.querySelectorAll('.dt').forEach(b => b.addEventListener('click', () => {
+  doorType = b.dataset.door;
+  document.querySelectorAll('.dt').forEach(x => x.classList.toggle('active', x === b));
+  if (ghost){ ghost.type = doorType; ghost.width = DOOR_TYPES[doorType].w; }
+  draw();
+}));
+document.querySelector('.dt[data-door="single"]').classList.add('active');
+
+document.querySelectorAll('.wt').forEach(b => b.addEventListener('click', () => {
+  // This is the user's pending window size choice. Do not let syncButtons()
+  // overwrite it just because a selected wall already has a different type.
+  windowType = b.dataset.win;
+  const w = walls.find(x => x.id === sel);
+  if (w){
+    if (!windowAllowedOnWall(w)){ warn('Windows are exterior-only and are skipped where another wall intersects the opening.'); syncButtons(); return; }
+    pushUndo();
+    w.windows = true;
+    w.windowType = windowType;
+    delete w.windowSpans; delete w.windowSlots; delete w.windowCount;
+  }
+  syncButtons(); draw();
+}));
+document.querySelector('.wt[data-win="standard"]').classList.add('active');
+
+
+const btnWindows = document.getElementById('btnWindows');
+function toggleWindows(){
+  const w = walls.find(x => x.id === sel);
+  if (!w) return;
+  if (!windowAllowedOnWall(w)){ warn('Windows can only be added to exterior walls, not shared room-to-room walls.'); return; }
+  pushUndo();
+  w.windows = !w.windows;
+  if (w.windows){
+    w.windowType = windowType;
+    delete w.windowSpans; delete w.windowSlots; delete w.windowCount;
+  }
+  syncButtons(); draw();
+}
+function selectedWallWindowTypeForUI(){
+  const w = walls.find(x => x.id === sel);
+  return (w && w.windows && w.windowType && WINDOW_TYPES[w.windowType]) ? w.windowType : windowType;
+}
+btnWindows.addEventListener('click', toggleWindows);
+
+const btnSnap = document.getElementById('btnSnap');
+function toggleSnap(){ snapOn = !snapOn; btnSnap.classList.toggle('active', snapOn); }
+btnSnap.addEventListener('click', toggleSnap);
+btnSnap.classList.add('active');
+
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnRedo').addEventListener('click', redo);
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  if (!flWalls().length && !flRooms().length && !flStairs().length && !flCutouts().length && !flPillars().length) return;
+  pushUndo();
+  const keepDoorWalls = new Set(walls.filter(w => w.fl !== curFl).map(w => w.id));
+  walls = walls.filter(w => w.fl !== curFl);
+  rooms = rooms.filter(r => r.fl !== curFl);
+  stairs = stairs.filter(s => s.fl !== curFl);
+  cutouts = cutouts.filter(c => c.fl !== curFl);
+  pillars = pillars.filter(p => p.fl !== curFl);
+  doors = doors.filter(d => keepDoorWalls.has(d.wallId));
+  sel = null;
+  syncButtons(); draw();
+});
+
+/* floor selector */
+const floorBtns = document.getElementById('floorBtns');
+function buildFloorPanel(){
+  floorBtns.innerHTML = '';
+  for (let f = nFloors; f >= 1; f--){
+    const b = document.createElement('button');
+    b.textContent = 'F' + f;
+    b.classList.toggle('cur', f === curFl);
+    b.addEventListener('click', () => { curFl = f; sel = null; buildFloorPanel(); syncButtons(); draw(); });
+    floorBtns.appendChild(b);
+  }
+  floorInd.textContent = 'F' + curFl;
+}
+document.getElementById('btnAddFloor').addEventListener('click', () => {
+  if (nFloors >= 6) { warn('Prototype caps at 6 floors.'); return; }
+  pushUndo();
+  nFloors++; curFl = nFloors;
+  buildFloorPanel(); draw();
+});
+
+document.getElementById('btnJson').addEventListener('click', () => {
+  const data = {
+    format: 'blueprint-plan', version: '0.3', units: 'meters',
+    grid: GRID, floors: nFloors, floorHeight: FLOOR_H, floorThickness: FLOOR_T,
+    wallThickness: {wall: WALL_T, halfWall: INT_T},
+    halfWallHeight: HALF_H,
+    windowTypes: WINDOW_TYPES,
+    materials: MATERIALS, defaultMaterials: defaultMats, foundationTrimOn,
+    doorTypes: DOOR_TYPES, door: {width: DOOR_W, doubleWidth: DOUBLE_DOOR_W, height: 2.1},
+    stairTypes: STAIR_TYPES,
+    walls, rooms: rooms.map(r => ({...r, area: polyArea(r.pts)})), doors, stairs, cutouts, pillars,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'blueprint.plan.json'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('btnPng').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = cv.toDataURL('image/png'); a.download = 'blueprint-F' + curFl + '.png'; a.click();
+});
+
+const paintTargetEl = document.getElementById('paintTarget');
+const paintMaterialEl = document.getElementById('paintMaterial');
+const btnApplyPaint = document.getElementById('btnApplyPaint');
+const btnBaseTrim = document.getElementById('btnBaseTrim'); // removed in v0.3.8; kept as a null-safe migration hook
+function initPaintControls(){
+  for (const [key, t] of Object.entries(PAINT_TARGETS)){
+    const opt = document.createElement('option'); opt.value = key; opt.textContent = t.label; paintTargetEl.appendChild(opt);
+  }
+  paintTargetEl.value = paintTarget;
+  paintTargetEl.addEventListener('change', () => { paintTarget = paintTargetEl.value; fillPaintMaterials(); });
+  paintMaterialEl.addEventListener('change', () => { defaultMats[paintTarget] = paintMaterialEl.value; });
+  btnApplyPaint.addEventListener('click', applyPaint);
+  if (btnBaseTrim) btnBaseTrim.addEventListener('click', () => { foundationTrimOn = !foundationTrimOn; btnBaseTrim.classList.toggle('active', foundationTrimOn); draw(); });
+  fillPaintMaterials();
+}
+function fillPaintMaterials(){
+  paintMaterialEl.innerHTML = '';
+  const cats = PAINT_TARGETS[paintTarget].cats;
+  for (const [key, m] of Object.entries(MATERIALS)){
+    if (!m.cat.some(c => cats.includes(c))) continue;
+    const opt = document.createElement('option'); opt.value = key; opt.textContent = m.label; paintMaterialEl.appendChild(opt);
+  }
+  paintMaterialEl.value = defaultMats[paintTarget];
+}
+function applyPaint(){
+  const mat = paintMaterialEl.value;
+  defaultMats[paintTarget] = mat;
+  const w = walls.find(x => x.id === sel);
+  const r = w ? rooms.find(x => x.id === w.roomId) : null;
+  pushUndo();
+  if ((paintTarget === 'exteriorWall' || paintTarget === 'interiorWall') && w) setWallMat(w, paintTarget, mat);
+  else if (r && ['floor','ceiling','roof'].includes(paintTarget)) setRoomMat(r, paintTarget, mat);
+  else defaultMats[paintTarget] = mat;
+  warn(w || r ? 'Material applied to the selected part and set as the new default.' : 'Default material updated for new/exported geometry.');
+  draw();
+}
+
+function syncButtons(){
+  const w = walls.find(x => x.id === sel);
+  const canWindow = !!w && windowAllowedOnWall(w);
+  btnWindows.disabled = !canWindow;
+  btnWindows.classList.toggle('active', !!(w && w.windows));
+  windowTypesEl.classList.toggle('show', tool === 'select' && canWindow);
+  const shownWindowType = selectedWallWindowTypeForUI();
+  document.querySelectorAll('.wt').forEach(x => x.classList.toggle('active', x.dataset.win === shownWindowType));
+  document.getElementById('btnUndo').disabled = !undoStack.length;
+  document.getElementById('btnRedo').disabled = !redoStack.length;
+}
+
+/* ---------------- boot ---------------- */
+initPaintControls();
+setTool('wall');
+buildFloorPanel();
+resize();
+</script>
+</body>
+</html>

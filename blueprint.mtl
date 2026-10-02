@@ -1,0 +1,245 @@
+# Blueprint material library — ready for local texture testing.
+# Keep blueprint.obj, blueprint.mtl, and the textures/ folder in the SAME folder.
+# The map_Kd lines below are already active; no manual uncommenting is needed.
+
+# ambientCG asset: Bricks038 — https://ambientcg.com/view?id=Bricks038
+newmtl Exterior_Brick
+Ka 0.5 0.2 0.14
+Kd 0.5 0.2 0.14
+Ks 0.02 0.02 0.02
+Ns 34.4
+d 1
+illum 2
+map_Kd textures/Exterior_Brick_BaseColor.jpg
+
+# ambientCG asset: Concrete023 — https://ambientcg.com/view?id=Concrete023
+newmtl Exterior_Stylized_Concrete
+Ka 0.48 0.48 0.43
+Kd 0.48 0.48 0.43
+Ks 0.02 0.02 0.02
+Ns 29.6
+d 1
+illum 2
+map_Kd textures/Exterior_Stylized_Concrete_BaseColor.jpg
+
+# ambientCG asset: PaintedPlaster003 — https://ambientcg.com/view?id=PaintedPlaster003
+newmtl Interior_Drywall_Warm
+Ka 0.76 0.73 0.66
+Kd 0.76 0.73 0.66
+Ks 0.12 0.12 0.12
+Ns 44
+d 1
+illum 2
+map_Kd textures/Interior_Drywall_BaseColor.jpg
+
+# ambientCG asset: PaintedPlaster003 — https://ambientcg.com/view?id=PaintedPlaster003
+newmtl Interior_Drywall_White
+Ka 0.86 0.84 0.78
+Kd 0.86 0.84 0.78
+Ks 0.12 0.12 0.12
+Ns 46.4
+d 1
+illum 2
+map_Kd textures/Interior_Drywall_BaseColor.jpg
+
+# ambientCG asset: PaintedPlaster003 — https://ambientcg.com/view?id=PaintedPlaster003
+newmtl Interior_Drywall_BlueGray
+Ka 0.48 0.54 0.57
+Kd 0.48 0.54 0.57
+Ks 0.02 0.02 0.02
+Ns 41.6
+d 1
+illum 2
+map_Kd textures/Interior_Drywall_BaseColor.jpg
+
+# ambientCG asset: Bricks023 — https://ambientcg.com/view?id=Bricks023
+newmtl Interior_Brick
+Ka 0.45 0.18 0.12
+Kd 0.45 0.18 0.12
+Ks 0.02 0.02 0.02
+Ns 32
+d 1
+illum 2
+map_Kd textures/Interior_Brick_BaseColor.jpg
+
+# ambientCG asset: Concrete023 — https://ambientcg.com/view?id=Concrete023
+newmtl Interior_Plain_Concrete
+Ka 0.42 0.42 0.39
+Kd 0.42 0.42 0.39
+Ks 0.02 0.02 0.02
+Ns 26
+d 1
+illum 2
+map_Kd textures/Interior_Plain_Concrete_BaseColor.jpg
+
+# ambientCG asset: Fabric022 — https://ambientcg.com/view?id=Fabric022
+newmtl Interior_Wallpaper_Muted
+Ka 0.52 0.47 0.41
+Kd 0.52 0.47 0.41
+Ks 0.12 0.12 0.12
+Ns 48.8
+d 1
+illum 2
+map_Kd textures/Interior_Wallpaper_Muted_BaseColor.jpg
+
+# ambientCG asset: Marble012 — https://ambientcg.com/view?id=Marble012
+newmtl Interior_Marble
+Ka 0.72 0.7 0.66
+Kd 0.72 0.7 0.66
+Ks 0.12 0.12 0.12
+Ns 98
+d 1
+illum 2
+map_Kd textures/Interior_Marble_BaseColor.jpg
+
+# ambientCG asset: OfficeCeiling001 — https://ambientcg.com/view?id=OfficeCeiling001
+newmtl Ceiling_Tiles
+Ka 0.7 0.69 0.64
+Kd 0.7 0.69 0.64
+Ks 0.02 0.02 0.02
+Ns 36.8
+d 1
+illum 2
+map_Kd textures/Ceiling_Tiles_BaseColor.jpg
+
+# ambientCG asset: WoodFloor040 — https://ambientcg.com/view?id=WoodFloor040
+newmtl Floor_Wood_Dark
+Ka 0.3 0.19 0.11
+Kd 0.3 0.19 0.11
+Ks 0.12 0.12 0.12
+Ns 74
+d 1
+illum 2
+map_Kd textures/Floor_Wood_Dark_BaseColor.jpg
+
+# ambientCG asset: Carpet012 — https://ambientcg.com/view?id=Carpet012
+newmtl Floor_Carpet_Charcoal
+Ka 0.15 0.16 0.16
+Kd 0.15 0.16 0.16
+Ks 0.02 0.02 0.02
+Ns 22.4
+d 1
+illum 2
+map_Kd textures/Floor_Carpet_BaseColor.jpg
+
+# ambientCG asset: Carpet012 — https://ambientcg.com/view?id=Carpet012
+newmtl Floor_Carpet_Brown
+Ka 0.23 0.17 0.13
+Kd 0.23 0.17 0.13
+Ks 0.02 0.02 0.02
+Ns 22.4
+d 1
+illum 2
+map_Kd textures/Floor_Carpet_BaseColor.jpg
+
+# ambientCG asset: Carpet012 — https://ambientcg.com/view?id=Carpet012
+newmtl Floor_Carpet_BlueGray
+Ka 0.2 0.25 0.29
+Kd 0.2 0.25 0.29
+Ks 0.02 0.02 0.02
+Ns 22.4
+d 1
+illum 2
+map_Kd textures/Floor_Carpet_BaseColor.jpg
+
+# ambientCG asset: Tiles027 — https://ambientcg.com/view?id=Tiles027
+newmtl Floor_Tile_Slate
+Ka 0.25 0.27 0.28
+Kd 0.25 0.27 0.28
+Ks 0.12 0.12 0.12
+Ns 68
+d 1
+illum 2
+map_Kd textures/Floor_Tile_Slate_BaseColor.jpg
+
+# ambientCG asset: Marble001 — https://ambientcg.com/view?id=Marble001
+newmtl Floor_Marble_Gray
+Ka 0.62 0.61 0.58
+Kd 0.62 0.61 0.58
+Ks 0.12 0.12 0.12
+Ns 94.4
+d 1
+illum 2
+map_Kd textures/Floor_Marble_Gray_BaseColor.jpg
+
+# ambientCG asset: Concrete040 — https://ambientcg.com/view?id=Concrete040
+newmtl Floor_Concrete
+Ka 0.44 0.44 0.41
+Kd 0.44 0.44 0.41
+Ks 0.02 0.02 0.02
+Ns 29.6
+d 1
+illum 2
+map_Kd textures/Floor_Concrete_BaseColor.jpg
+
+# ambientCG asset: Concrete023 — https://ambientcg.com/view?id=Concrete023
+newmtl Roof_Concrete
+Ka 0.36 0.37 0.35
+Kd 0.36 0.37 0.35
+Ks 0.02 0.02 0.02
+Ns 24.8
+d 1
+illum 2
+map_Kd textures/Roof_Concrete_BaseColor.jpg
+
+newmtl Trim_Foundation_Concrete
+Ka 0.34 0.34 0.31
+Kd 0.34 0.34 0.31
+Ks 0.02 0.02 0.02
+Ns 27.2
+d 1
+illum 2
+
+newmtl Trim_Wood_Paneling
+Ka 0.28 0.16 0.09
+Kd 0.28 0.16 0.09
+Ks 0.12 0.12 0.12
+Ns 62
+d 1
+illum 2
+
+# ambientCG asset: Concrete023 — https://ambientcg.com/view?id=Concrete023
+newmtl Pillar_Concrete
+Ka 0.43 0.43 0.4
+Kd 0.43 0.43 0.4
+Ks 0.02 0.02 0.02
+Ns 27.2
+d 1
+illum 2
+map_Kd textures/Pillar_Concrete_BaseColor.jpg
+
+# ambientCG asset: Concrete023 — https://ambientcg.com/view?id=Concrete023
+newmtl Stair_Concrete
+Ka 0.39 0.39 0.36
+Kd 0.39 0.39 0.36
+Ks 0.02 0.02 0.02
+Ns 29.6
+d 1
+illum 2
+map_Kd textures/Stair_Concrete_BaseColor.jpg
+
+newmtl Door_Wood
+Ka 0.32 0.18 0.08
+Kd 0.32 0.18 0.08
+Ks 0.12 0.12 0.12
+Ns 74
+d 1
+illum 2
+
+newmtl Window_Glass
+Ka 0.55 0.72 0.8
+Kd 0.55 0.72 0.8
+Ks 0.12 0.12 0.12
+Ns 128
+d 0.35
+illum 4
+
+# ambientCG asset: Concrete023 — https://ambientcg.com/view?id=Concrete023
+newmtl Cut_Edge_Concrete
+Ka 0.4 0.4 0.37
+Kd 0.4 0.4 0.37
+Ks 0.02 0.02 0.02
+Ns 27.2
+d 1
+illum 2
+map_Kd textures/Cut_Edge_Concrete_BaseColor.jpg
